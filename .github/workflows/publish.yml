@@ -27,10 +27,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
-      # npm >= 11.5.1 is required if this repository is later switched from
-      # NPM_TOKEN to npm trusted publishing (OIDC).
-      - name: Update npm
-        run: npm install --global npm@latest
+      # Pinned to npm 11 on purpose:
+      #   - npm >= 11.5.1 is required by npm trusted publishing (OIDC).
+      #   - npm 12 changed `npm pack --dry-run --json` from an array to an
+      #     object keyed by package name, which scripts/validate-package.js
+      #     does not accept yet.
+      - name: Use npm 11
+        run: npm install --global npm@11
 
       - name: Install dependencies
         run: npm ci
