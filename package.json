@@ -1,0 +1,58 @@
+{
+  "name": "n8n-nodes-thordata",
+  "version": "0.1.0",
+  "description": "Thordata SERP API community node for n8n",
+  "license": "MIT",
+  "author": {
+    "name": "Thordata",
+    "email": "cianna@thordata.com"
+  },
+  "homepage": "https://www.thordata.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThorData2026/n8n-nodes-thordata.git"
+  },
+  "main": "dist/index.js",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "serp",
+    "thordata"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ThordataApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Thordata/Thordata.node.js"
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/clean-dist.js && tsc && node scripts/copy-assets.js",
+    "test": "jest --runInBand",
+    "lint": "node scripts/validate-package.js",
+    "update:schema": "npm run build && node scripts/update-serp-snapshot.js",
+    "verify": "npm run build && npm run lint && npm test",
+    "prepack": "npm run verify"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "^0.47.2",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.0",
+    "jest": "^29.7.0",
+    "n8n-node-dev": "^1.121.16",
+    "n8n-workflow": "^1.82.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.8.3"
+  }
+}

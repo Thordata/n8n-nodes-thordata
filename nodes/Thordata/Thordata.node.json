@@ -1,0 +1,20 @@
+{
+  "node": "n8n-nodes-thordata.thordata",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": [
+    "Data & Storage"
+  ],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": "https://doc.thordata.com"
+      }
+    ],
+    "credentialDocumentation": [
+      {
+        "url": "https://doc.thordata.com"
+      }
+    ]
+  }
+}
