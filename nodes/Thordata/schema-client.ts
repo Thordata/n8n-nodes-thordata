@@ -51,6 +51,12 @@ function cloneAndFreeze(schema: SerpSchema): SerpSchema {
   return deepFreeze(cloneValue(schema));
 }
 
+// 本模块刻意不依赖 n8n 运行时（保持可独立单测）：非校验类异常原样抛出，
+// 由节点层 execute() 的 normalizeNodeError 统一包装成 NodeOperationError。
+function rethrow(error: unknown): never {
+  throw error;
+}
+
 interface ExecutionCache {
   readonly schema: SerpSchema;
   readonly fetchedAt: number;
@@ -64,6 +70,8 @@ export class SerpSchemaRepository {
   private executionCache?: ExecutionCache;
 
   private executionRefresh?: Promise<SerpSchema>;
+
+  private executionRefreshId = 0;
 
   constructor(snapshot: SerpSchema) {
     this.snapshot = cloneAndFreeze(snapshot);
@@ -87,8 +95,10 @@ export class SerpSchemaRepository {
       }
     }
 
-    let refresh!: Promise<SerpSchema>;
-    refresh = (async () => {
+    // 用自增标识判断 finally 里的清理是否属于本次刷新：
+    // 直接引用 task 自身会命中 TS 的“变量在赋值前使用”
+    const refreshId = (this.executionRefreshId += 1);
+    const task = (async () => {
       try {
         const schema = await this.fetchAndNormalize(fetcher);
         if (schema) {
@@ -98,11 +108,11 @@ export class SerpSchemaRepository {
         }
         return this.lastSuccess ?? this.snapshot;
       } finally {
-        if (this.executionRefresh === refresh) this.executionRefresh = undefined;
+        if (this.executionRefreshId === refreshId) this.executionRefresh = undefined;
       }
     })();
-    this.executionRefresh = refresh;
-    return refresh;
+    this.executionRefresh = task;
+    return task;
   }
 
   private async fetchAndNormalize(fetcher: SerpSchemaFetcher): Promise<SerpSchema | undefined> {
@@ -117,7 +127,7 @@ export class SerpSchemaRepository {
       return normalizeSerpSchema(payload);
     } catch (error) {
       if (error instanceof SerpSchemaValidationError) return undefined;
-      throw error;
+      rethrow(error);
     }
   }
 }

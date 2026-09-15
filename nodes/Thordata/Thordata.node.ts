@@ -151,7 +151,7 @@ export class Thordata implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Thordata',
     name: 'thordata',
-    icon: 'file:thordata.svg',
+    icon: { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' },
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"]}}',
@@ -179,10 +179,12 @@ export class Thordata implements INodeType {
         noDataExpression: true,
       },
       {
-        displayName: 'Operation',
+        displayName: 'Operation Name or ID',
         name: 'operation',
         type: 'options',
         typeOptions: { loadOptionsMethod: 'getSerpOperations' },
+        // n8n 规范要求动态下拉（options + loadOptionsMethod）必须使用标准文案
+        description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
         default: 'google',
         required: true,
         noDataExpression: true,
@@ -202,7 +204,7 @@ export class Thordata implements INodeType {
         },
       },
       {
-        displayName: 'Encoded Location',
+        displayName: 'Encoded Location Name or ID',
         name: 'encodedLocationValue',
         type: 'options',
         // 选项值恒为空串、标签是算好的 UULE：参数值保持未设置，但空串能匹配到该选项，
@@ -211,6 +213,8 @@ export class Thordata implements INodeType {
           loadOptionsMethod: 'getEncodedLocationOptions',
           loadOptionsDependsOn: ['operation', 'parameters.value.location'],
         },
+        // n8n 规范要求动态下拉（options + loadOptionsMethod）必须使用标准文案
+        description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
         default: '',
         noDataExpression: true,
         displayOptions: {
@@ -317,7 +321,11 @@ export class Thordata implements INodeType {
       try {
         const resource = this.getNodeParameter('resource', itemIndex);
         if (resource !== 'serp') {
-          throw new Error(`Unsupported Thordata resource: ${String(resource)}`);
+          throw new NodeOperationError(
+            this.getNode(),
+            `Unsupported Thordata resource: ${String(resource)}`,
+            { itemIndex },
+          );
         }
 
         const operationValue = this.getNodeParameter('operation', itemIndex);

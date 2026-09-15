@@ -8,6 +8,18 @@ const assetMappings = [
     target: resolve(packageRoot, 'dist', 'nodes', 'Thordata', 'thordata.svg'),
   },
   {
+    source: resolve(packageRoot, 'nodes', 'Thordata', 'thordata.dark.svg'),
+    target: resolve(packageRoot, 'dist', 'nodes', 'Thordata', 'thordata.dark.svg'),
+  },
+  {
+    source: resolve(packageRoot, 'credentials', 'thordata.svg'),
+    target: resolve(packageRoot, 'dist', 'credentials', 'thordata.svg'),
+  },
+  {
+    source: resolve(packageRoot, 'credentials', 'thordata.dark.svg'),
+    target: resolve(packageRoot, 'dist', 'credentials', 'thordata.dark.svg'),
+  },
+  {
     source: resolve(packageRoot, 'nodes', 'Thordata', 'Thordata.node.json'),
     target: resolve(packageRoot, 'dist', 'nodes', 'Thordata', 'Thordata.node.json'),
   },

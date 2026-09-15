@@ -1,6 +1,6 @@
 # n8n-nodes-thordata
 
-`n8n-nodes-thordata` v0.1.1 is an n8n SERP API community node for Thordata.
+`n8n-nodes-thordata` v0.1.2 is an n8n SERP API community node for Thordata.
 
 ## Installation
 
@@ -31,13 +31,13 @@ Create a **Thordata API** credential with:
 - **API Key**: a required password field.
 - **SERP Endpoint**: defaults to `https://scraperapi.thordata.com/request`.
 
-There is no automatic credential test because live validation consumes a SERP request and may consume credit. The Bearer API Key is sent to the configured SERP Endpoint. Only credential administrators should change that endpoint; use a trusted internal/development endpoint when overriding it.
+Select **Test** to validate the credential. The test sends one minimal SERP request (`engine=google&q=thordata`) to the configured endpoint, so a successful test consumes one credit. The Bearer API Key is sent to the configured SERP Endpoint. Only credential administrators should change that endpoint; use a trusted internal/development endpoint when overriding it.
 
 ## Usage
 
 1. Add the **Thordata** node to a workflow.
-2. Select the only v0.1.1 **Resource**, **SERP API**.
-3. Select one of the dynamically loaded engines under **Operation**.
+2. Select the only v0.1.2 **Resource**, **SERP API**.
+3. Select one of the dynamically loaded engines under **Operation Name or ID**.
 4. Fill the dynamically loaded **Parameters**. The editor exposes schema fields where `visible=true` for the `is_serp_old=0` audience. Hidden fields are not displayed and are not defaulted.
 5. Expand the collapsed **Options** collection when needed and provide **Extra Parameters JSON** as a JSON object.
 
@@ -62,11 +62,11 @@ A missing query is returned as `null`, and `result` is always JSON-safe. Busines
 
 The schema is fetched from a fixed public URL; no API key is used in the schema call. Editor loads are fresh. Execution uses a 5-minute in-memory cache, then a last success or bundled snapshot fallback with 34 engines. There is no database or workflow persistence.
 
-No key is written to the schema call, snapshot, or logs. There is no automatic credential test. Treat a custom SERP Endpoint as a security-sensitive credential setting and use only a trusted internal/development endpoint.
+No key is written to the schema call, snapshot, or logs. Credential validation is manual and consumes one SERP credit per test. Treat a custom SERP Endpoint as a security-sensitive credential setting and use only a trusted internal/development endpoint.
 
 ## Version scope
 
-v0.1.1 does not expose Web Scraper. A later version may add another resource without changing existing `resource=serp` workflows.
+v0.1.2 does not expose Web Scraper. A later version may add another resource without changing existing `resource=serp` workflows.
 
 ## License
 

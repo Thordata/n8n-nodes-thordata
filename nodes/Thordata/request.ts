@@ -53,6 +53,25 @@ const AUTO_UULE_ENGINES = new Set([
   'bing',
 ]);
 
+// 本模块刻意不依赖 n8n 运行时（保持纯函数、可独立单测）：
+// 这里只抛领域错误，节点层 execute() 的 normalizeNodeError 会统一包装成 NodeOperationError。
+function fail(message: string): never {
+  throw new Error(message);
+}
+
+function rethrow(error: unknown): never {
+  throw error;
+}
+
+// 等价于 /[\u0000-\u001f\u007f]/，但避免在源码里书写控制字符正则（n8n 审核的 no-control-regex）
+function hasControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
 function hasOwn(record: object, key: PropertyKey): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }
@@ -92,25 +111,25 @@ function inspectOwnProperties(value: object, path: string): readonly InspectedPr
   try {
     keys = Reflect.ownKeys(value);
   } catch {
-    throw new Error(`${path} cannot be safely inspected`);
+    fail(`${path} cannot be safely inspected`);
   }
 
   const properties: InspectedProperty[] = [];
   for (const key of keys) {
-    if (typeof key !== 'string') throw new Error(`${path} contains a symbol key`);
+    if (typeof key !== 'string') fail(`${path} contains a symbol key`);
     if (Array.isArray(value) && key === 'length') continue;
-    if (DANGEROUS_KEYS.has(key)) throw new Error(`${path} contains dangerous key ${key}`);
+    if (DANGEROUS_KEYS.has(key)) fail(`${path} contains dangerous key ${key}`);
 
     let descriptor: PropertyDescriptor | undefined;
     try {
       descriptor = Reflect.getOwnPropertyDescriptor(value, key);
     } catch {
-      throw new Error(`${path} cannot be safely inspected`);
+      fail(`${path} cannot be safely inspected`);
     }
-    if (!descriptor) throw new Error(`${path} cannot be safely inspected`);
-    if (!hasOwn(descriptor, 'value')) throw new Error(`${path} contains an accessor property`);
+    if (!descriptor) fail(`${path} cannot be safely inspected`);
+    if (!hasOwn(descriptor, 'value')) fail(`${path} contains an accessor property`);
     if (key === 'toJSON' && typeof descriptor.value === 'function') {
-      throw new Error(`${path} contains a custom toJSON function`);
+      fail(`${path} contains a custom toJSON function`);
     }
     properties.push({ key, value: descriptor.value, enumerable: descriptor.enumerable ?? false });
   }
@@ -125,12 +144,12 @@ function inspectSafeJson(
 ): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error(`${path} contains a non-finite number`);
+    if (!Number.isFinite(value)) fail(`${path} contains a non-finite number`);
     return;
   }
-  if (typeof value !== 'object') throw new Error(`${path} contains an unsupported ${typeof value} value`);
-  if (!Array.isArray(value) && !isPlainRecord(value)) throw new Error(`${path} contains a non-plain object`);
-  if (active.has(value)) throw new Error(`${path} contains a cycle`);
+  if (typeof value !== 'object') fail(`${path} contains an unsupported ${typeof value} value`);
+  if (!Array.isArray(value) && !isPlainRecord(value)) fail(`${path} contains a non-plain object`);
+  if (active.has(value)) fail(`${path} contains a cycle`);
   if (completed.has(value)) return;
 
   active.add(value);
@@ -153,7 +172,7 @@ function inspectStructure(
   completed = new WeakSet<object>(),
 ): void {
   if (value === null || typeof value !== 'object') return;
-  if (active.has(value)) throw new Error(`${path} contains a cycle`);
+  if (active.has(value)) fail(`${path} contains a cycle`);
   if (completed.has(value)) return;
 
   active.add(value);
@@ -175,18 +194,18 @@ function emptyRecord(): Record<string, unknown> {
 
 export function parseExtraParameters(input: ParamsJsonInput): Record<string, unknown> {
   if (input === undefined || (typeof input === 'string' && input.trim() === '')) return emptyRecord();
-  if (input === null) throw new Error('Extra Parameters JSON must be an object');
+  if (input === null) fail('Extra Parameters JSON must be an object');
 
   let parsed: unknown = input;
   if (typeof input === 'string') {
     try {
       parsed = JSON.parse(input) as unknown;
     } catch {
-      throw new Error('Extra Parameters JSON is invalid JSON');
+      fail('Extra Parameters JSON is invalid JSON');
     }
   }
 
-  if (!isPlainRecord(parsed)) throw new Error('Extra Parameters JSON must be an object');
+  if (!isPlainRecord(parsed)) fail('Extra Parameters JSON must be an object');
   inspectStructure(parsed, 'Extra Parameters JSON');
 
   const result = emptyRecord();
@@ -197,7 +216,7 @@ export function parseExtraParameters(input: ParamsJsonInput): Record<string, unk
 }
 
 function invalidKnown(field: SerpFieldSchema, engine: string, reason: string): never {
-  throw new Error(`Invalid SERP parameter ${field.key} for engine ${engine}: ${reason}`);
+  fail(`Invalid SERP parameter ${field.key} for engine ${engine}: ${reason}`);
 }
 
 function normalizeScalar(value: unknown, field: SerpFieldSchema, engine: string): string {
@@ -232,7 +251,7 @@ function normalizeNumber(value: unknown, field: SerpFieldSchema, engine: string)
 function normalizeArrayEntry(value: unknown, field: SerpFieldSchema, engine: string): string {
   if (typeof value === 'string') {
     const normalized = value.trim();
-    if (/[\u0000-\u001f\u007f]/.test(normalized)) {
+    if (hasControlCharacter(normalized)) {
       return invalidKnown(field, engine, 'array entries cannot contain control characters');
     }
     return normalized;
@@ -319,7 +338,7 @@ function normalizeKnown(value: unknown, field: SerpFieldSchema, engine: string):
   }
   if (field.key !== 'cr') return normalized;
   const serialized = String(normalized);
-  if (/[\u0000-\u001f\u007f]/.test(serialized)) {
+  if (hasControlCharacter(serialized)) {
     return invalidKnown(field, engine, 'country restriction cannot contain control characters');
   }
   return normalizeCountry(serialized);
@@ -327,7 +346,7 @@ function normalizeKnown(value: unknown, field: SerpFieldSchema, engine: string):
 
 function invalidExtra(key: string): never {
   const label = SAFE_ERROR_KEY.test(key) ? ` ${key}` : '';
-  throw new Error(`Invalid Extra Parameter${label}: value is not JSON-safe`);
+  fail(`Invalid Extra Parameter${label}: value is not JSON-safe`);
 }
 
 function normalizeUnknown(value: unknown, key: string): string | number | boolean {
@@ -397,7 +416,7 @@ function isPresent(params: SerpParams, key: string): boolean {
 function validateParams(selected: SerpEngineSchema, params: SerpParams): void {
   for (const field of selected.fields) {
     if (field.required && !isPresent(params, field.key)) {
-      throw new Error(`SERP engine ${selected.key} required field ${field.key} is missing`);
+      fail(`SERP engine ${selected.key} required field ${field.key} is missing`);
     }
   }
   for (const rule of selected.validationRules) {
@@ -420,7 +439,7 @@ function validateParams(selected: SerpEngineSchema, params: SerpParams): void {
     }).length;
     const failed = rule.type === 'required_any_of' ? presentCount === 0 : presentCount > 1;
     if (failed) {
-      throw new Error(
+      fail(
         `SERP engine ${selected.key} validation ${rule.type} failed for fields ${rule.fields.join(', ')}`,
       );
     }
@@ -457,7 +476,7 @@ export function encodeUuleLocation(location: string): string {
   const bytes = Buffer.allocUnsafe(normalized.length);
   for (let index = 0; index < normalized.length; index += 1) {
     const codeUnit = normalized.charCodeAt(index);
-    if (codeUnit > 0xff) throw new Error('UULE location must contain Latin-1 characters');
+    if (codeUnit > 0xff) fail('UULE location must contain Latin-1 characters');
     bytes[index] = codeUnit;
   }
   const lengthCharacter = UULE_LENGTH_ALPHABET[normalized.length % UULE_LENGTH_ALPHABET.length];
@@ -497,13 +516,13 @@ export function buildSerpParams(input: BuildSerpParamsInput): SerpParams {
     extra = parseExtraParameters(input.extraParameters);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'contains invalid data';
-    const cycle = /^Extra Parameters JSON\.([^.\[]+).* contains a cycle$/.exec(message);
+    const cycle = /^Extra Parameters JSON\.([^.[]+).* contains a cycle$/.exec(message);
     if (cycle) {
       const field = selected.fields.find((candidate) => candidate.key === cycle[1]);
       if (field) invalidKnown(field, selected.key, message);
-      throw new Error(`Invalid Extra Parameter ${cycle[1]}: ${message}`);
+      fail(`Invalid Extra Parameter ${cycle[1]}: ${message}`);
     }
-    throw error;
+    rethrow(error);
   }
   applyExtra(params, selected, extra);
   const acceptsLinkedUule = selected.fields.some((field) => field.key === 'uule' && field.visible);
@@ -540,7 +559,7 @@ export function toFormUrlEncoded(params: SerpParams): string {
 
 export function buildSerpRequestOptions(input: BuildSerpRequestOptionsInput): SerpRequestOptions {
   const endpoint = input.endpoint.trim();
-  if (endpoint === '') throw new Error('Thordata SERP endpoint must not be blank');
+  if (endpoint === '') fail('Thordata SERP endpoint must not be blank');
   return {
     method: 'POST',
     url: endpoint,

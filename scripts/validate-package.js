@@ -157,9 +157,12 @@ const expectedFiles = ['dist', 'README.md', 'LICENSE'];
 const expectedDistFiles = [
   'dist/index.js',
   'dist/credentials/ThordataApi.credentials.js',
+  'dist/credentials/thordata.svg',
+  'dist/credentials/thordata.dark.svg',
   'dist/nodes/Thordata/Thordata.node.js',
   'dist/nodes/Thordata/Thordata.node.json',
   'dist/nodes/Thordata/thordata.svg',
+  'dist/nodes/Thordata/thordata.dark.svg',
   'dist/nodes/Thordata/schema.js',
   'dist/nodes/Thordata/schema-client.js',
   'dist/nodes/Thordata/schema-snapshot.js',
@@ -176,7 +179,7 @@ const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.1', 'Unexpected package version');
+assert(packageJson.version === '0.1.2', 'Unexpected package version');
 assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');
@@ -217,6 +220,9 @@ const nodeSourcePath = 'nodes/Thordata/Thordata.node.ts';
 const compiledNodePath = 'dist/nodes/Thordata/Thordata.node.js';
 const nodeMetadataPath = 'nodes/Thordata/Thordata.node.json';
 const iconPath = 'nodes/Thordata/thordata.svg';
+const darkIconPath = 'nodes/Thordata/thordata.dark.svg';
+const credentialIconPath = 'credentials/thordata.svg';
+const credentialDarkIconPath = 'credentials/thordata.dark.svg';
 const snapshotPath = 'nodes/Thordata/serp-schema.snapshot.json';
 const requiredSourcePaths = [
   'README.md',
@@ -224,6 +230,9 @@ const requiredSourcePaths = [
   nodeSourcePath,
   nodeMetadataPath,
   iconPath,
+  darkIconPath,
+  credentialIconPath,
+  credentialDarkIconPath,
   snapshotPath,
 ];
 
@@ -238,8 +247,12 @@ deepStrictEqual(listFiles('dist').sort(), expectedDistFiles, 'Unexpected dist ar
 
 const credentialSource = readSource(credentialPath);
 assert(
-  !/ICredentialTestRequest/.test(credentialSource),
-  'Credential test request imports are not allowed',
+  /ICredentialTestRequest/.test(credentialSource),
+  'Credential must declare an ICredentialTestRequest (n8n review requirement)',
+);
+assert(
+  /test:\s*ICredentialTestRequest/.test(credentialSource),
+  'Credential test must be typed as ICredentialTestRequest',
 );
 
 const { ThordataApi } = require(resolve(packageRoot, compiledCredentialPath));
@@ -247,6 +260,11 @@ const credential = new ThordataApi();
 assert(credential.name === 'thordataApi', 'Unexpected credential name');
 assert(credential.displayName === 'Thordata API', 'Unexpected credential display name');
 assert(credential.documentationUrl === 'https://doc.thordata.com', 'Unexpected credential documentation URL');
+deepStrictEqual(
+  credential.icon,
+  { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' },
+  'Unexpected credential icon',
+);
 deepStrictEqual(
   credential.properties.map((property) => ({
     name: property.name,
@@ -285,7 +303,18 @@ deepStrictEqual(
   },
   'Unexpected credential authentication',
 );
-assert(!('test' in credential), 'Credential must not declare an automatic test request');
+deepStrictEqual(
+  credential.test,
+  {
+    request: {
+      method: 'POST',
+      url: '={{$credentials.endpoint}}',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'engine=google&q=thordata&json=1&isjson=1',
+    },
+  },
+  'Unexpected credential test request',
+);
 
 const { BUNDLED_SERP_SCHEMA } = require(
   resolve(packageRoot, 'dist/nodes/Thordata/schema-snapshot.js'),
@@ -361,6 +390,8 @@ deepStrictEqual(
 const { Thordata } = require(resolve(packageRoot, compiledNodePath));
 const node = new Thordata();
 const nodeDescription = node.description;
+// n8n 审核规则强制动态下拉（options + loadOptionsMethod）使用这段标准文案
+const DYNAMIC_OPTIONS_DESCRIPTION = 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>';
 deepStrictEqual(
   {
     displayName: nodeDescription.displayName,
@@ -378,7 +409,7 @@ deepStrictEqual(
   {
     displayName: 'Thordata',
     name: 'thordata',
-    icon: 'file:thordata.svg',
+    icon: { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' },
     group: ['transform'],
     version: 1,
     description: 'Search with Thordata SERP API',
@@ -420,18 +451,22 @@ deepStrictEqual(
 );
 deepStrictEqual(
   {
+    displayName: operationProperty.displayName,
     name: operationProperty.name,
     type: operationProperty.type,
     typeOptions: operationProperty.typeOptions,
+    description: operationProperty.description,
     default: operationProperty.default,
     required: operationProperty.required,
     noDataExpression: operationProperty.noDataExpression,
     displayOptions: operationProperty.displayOptions,
   },
   {
+    displayName: 'Operation Name or ID',
     name: 'operation',
     type: 'options',
     typeOptions: { loadOptionsMethod: 'getSerpOperations' },
+    description: DYNAMIC_OPTIONS_DESCRIPTION,
     default: 'google',
     required: true,
     noDataExpression: true,
@@ -475,6 +510,7 @@ deepStrictEqual(
     displayName: encodedLocationProperty.displayName,
     name: encodedLocationProperty.name,
     type: encodedLocationProperty.type,
+    description: encodedLocationProperty.description,
     default: encodedLocationProperty.default,
     required: encodedLocationProperty.required,
     noDataExpression: encodedLocationProperty.noDataExpression,
@@ -482,9 +518,10 @@ deepStrictEqual(
     typeOptions: encodedLocationProperty.typeOptions,
   },
   {
-    displayName: 'Encoded Location',
+    displayName: 'Encoded Location Name or ID',
     name: 'encodedLocationValue',
     type: 'options',
+    description: DYNAMIC_OPTIONS_DESCRIPTION,
     default: '',
     required: undefined,
     noDataExpression: true,
