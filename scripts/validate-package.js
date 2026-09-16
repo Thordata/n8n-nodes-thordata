@@ -179,7 +179,7 @@ const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.2', 'Unexpected package version');
+assert(packageJson.version === '0.1.3', 'Unexpected package version');
 assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');

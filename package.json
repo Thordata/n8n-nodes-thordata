@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-thordata",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Thordata SERP API community node for n8n",
   "license": "MIT",
   "author": {
@@ -10,7 +10,7 @@
   "homepage": "https://www.thordata.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ThorData2026/n8n-nodes-thordata.git"
+    "url": "git+https://github.com/Thordata/n8n-nodes-thordata.git"
   },
   "main": "dist/index.js",
   "keywords": [
