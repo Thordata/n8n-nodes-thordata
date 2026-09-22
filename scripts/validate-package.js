@@ -98,7 +98,8 @@ function npmCliCandidatesFromExecutable(executable) {
   try {
     candidates.unshift(realpathSync(executable));
   } catch {
-    // 平台定位器返回启动器时，下面的相邻路径仍可能解析到 npm CLI。
+    // When the platform locator returns a launcher, the adjacent paths below may still resolve to
+    // the npm CLI.
   }
   return candidates;
 }
@@ -179,7 +180,7 @@ const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.3', 'Unexpected package version');
+assert(packageJson.version === '0.1.4', 'Unexpected package version');
 assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');
@@ -390,7 +391,7 @@ deepStrictEqual(
 const { Thordata } = require(resolve(packageRoot, compiledNodePath));
 const node = new Thordata();
 const nodeDescription = node.description;
-// n8n 审核规则强制动态下拉（options + loadOptionsMethod）使用这段标准文案
+// n8n's review rules require this standard wording for dynamic dropdowns (options + loadOptionsMethod)
 const DYNAMIC_OPTIONS_DESCRIPTION = 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>';
 deepStrictEqual(
   {

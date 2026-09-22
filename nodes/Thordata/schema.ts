@@ -449,9 +449,10 @@ type ResourceMapperFieldWithDefault = ResourceMapperFields['fields'][number] & {
   defaultValue?: string | number | boolean;
 };
 
-// n8n 的 resourceMapper 只能存标量：编辑器把非 string/number/boolean 的值写成 null
-// （isResourceMapperValue 只接受这三种 typeof），所以多选字段不进 mapper，
-// 由节点顶层属性单独渲染（见 Thordata.node.ts 的 multiOptions 属性）。
+// n8n's resourceMapper can only store scalars: the editor writes null for any value that is not
+// a string, number or boolean (isResourceMapperValue accepts only those three typeof results),
+// so multi-value fields stay out of the mapper and are rendered as top-level node properties
+// instead (see the multiOptions properties in Thordata.node.ts).
 export function isMultiValueField(field: SerpFieldSchema): boolean {
   return field.control === 'multi_select';
 }

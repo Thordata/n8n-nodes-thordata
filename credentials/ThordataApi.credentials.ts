@@ -46,8 +46,9 @@ export class ThordataApi implements ICredentialType {
     },
   };
 
-  // n8n 要求社区节点凭据提供可执行的测试；这里发一个最小 SERP 查询，
-  // 能返回 2xx 即认为凭据可用，失败会直接抛出上游状态码。注意：测试成功会消耗 1 个 credit。
+  // n8n requires community node credentials to expose an executable test. This issues a minimal
+  // SERP query: a 2xx response means the credential is usable, and failures surface the upstream
+  // status code. Note that a successful test consumes one credit.
   test: ICredentialTestRequest = {
     request: {
       method: 'POST',

@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 /**
- * 从正式包再生成测试环境变体。
+ * Regenerates the test-environment variant from the production package.
  *
- * 正式包（本目录）是唯一权威来源；测试变体只是把两个域名换掉：
- *   - SERP 请求端点：https://scraperapi.thordata.com/request
- *                 → http://serp-dev-test.thordata.com/request_testasdadsa
- *   - schema 接口：  https://api.thordata.com/serp/playground/schema?lang=en
- *                 → http://api-dev-test.thordata.com/serp/playground/schema?lang=en
- * 测试/校验脚本里对这两个域名的断言、README 文案会一并改写。
+ * The production package (this directory) is the single source of truth; the test variant only
+ * swaps two domains:
+ *   - SERP request endpoint: https://scraperapi.thordata.com/request
+ *                 -> http://serp-dev-test.thordata.com/request_testasdadsa
+ *   - schema endpoint:       https://api.thordata.com/serp/playground/schema?lang=en
+ *                 -> http://api-dev-test.thordata.com/serp/playground/schema?lang=en
+ * Assertions on these two domains in the test/validation scripts, and the README wording, are
+ * rewritten as well.
  *
- * 用法：node scripts/sync-test-variant.mjs [--target <目录>]
- * 默认目标：与本包同级的 n8n-nodes-thordata-testenv
+ * Usage: node scripts/sync-test-variant.mjs [--target <dir>]
+ * Default target: n8n-nodes-thordata-testenv, a sibling of this package
  *
- * 注意：目标目录里的 n8n-instance（本地 n8n 实例与数据）不会被删除或覆盖。
+ * Note: n8n-instance (the local n8n instance and its data) inside the target directory is never
+ * deleted or overwritten.
  */
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
@@ -26,7 +29,7 @@ const TARGET_ROOT = targetFlag >= 0 && args[targetFlag + 1]
   ? resolve(args[targetFlag + 1])
   : resolve(PACKAGE_ROOT, '..', 'n8n-nodes-thordata-testenv');
 
-// 这些是构建产物 / 依赖 / 本地实例，不参与同步
+// Build output, dependencies and the local instance are not part of the sync
 const SKIP_ENTRIES = new Set(['node_modules', 'dist', '.git', 'n8n-instance', 'coverage']);
 const SKIP_FILE = /\.tgz$/;
 
@@ -56,7 +59,10 @@ function walkFiles(root, dir = root, out = []) {
 }
 
 if (!existsSync(TARGET_ROOT)) {
-  throw new Error(`目标目录不存在：${TARGET_ROOT}（请先创建并放入 n8n-instance/credentials 等本机数据）`);
+  throw new Error(
+    `Target directory does not exist: ${TARGET_ROOT} ` +
+      '(create it first and add local data such as n8n-instance/credentials inside)',
+  );
 }
 
 let written = 0;
@@ -82,6 +88,6 @@ for (const rel of walkFiles(PACKAGE_ROOT)) {
   written += 1;
 }
 
-console.log(`测试变体已同步：${TARGET_ROOT}`);
-console.log(`  写入/更新 ${written} 个文件，未变化 ${unchanged} 个，域名替换 ${substituted} 处`);
-console.log('  接着在变体目录执行：npm run verify（会重新 build + lint + test）');
+console.log(`Test variant synced: ${TARGET_ROOT}`);
+console.log(`  ${written} files written or updated, ${unchanged} unchanged, ${substituted} domain replacements`);
+console.log('  Next, run npm run verify inside the variant directory (rebuilds and reruns lint + test)');

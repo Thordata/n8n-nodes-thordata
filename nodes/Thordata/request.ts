@@ -38,7 +38,7 @@ export interface SerpRequestOptions {
 }
 
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-// Dashboard 对 cr / lr 的多值都用 join("|")，其余数组字段用逗号
+// The dashboard joins multi-values for cr / lr with "|"; other array fields use commas
 const PIPE_JOINED_ARRAY_KEYS = new Set(['cr', 'lr']);
 const UULE_LENGTH_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const AUTO_UULE_ENGINES = new Set([
@@ -53,8 +53,9 @@ const AUTO_UULE_ENGINES = new Set([
   'bing',
 ]);
 
-// 本模块刻意不依赖 n8n 运行时（保持纯函数、可独立单测）：
-// 这里只抛领域错误，节点层 execute() 的 normalizeNodeError 会统一包装成 NodeOperationError。
+// This module deliberately avoids depending on the n8n runtime so that it stays a set of pure,
+// independently unit-testable functions: it only throws domain errors, and normalizeNodeError
+// in the node layer execute() wraps them into NodeOperationError.
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -63,7 +64,8 @@ function rethrow(error: unknown): never {
   throw error;
 }
 
-// 等价于 /[\u0000-\u001f\u007f]/，但避免在源码里书写控制字符正则（n8n 审核的 no-control-regex）
+// Equivalent to /[\u0000-\u001f\u007f]/ but avoids writing a control-character regex in the
+// source, which the n8n review rejects via no-control-regex.
 function hasControlCharacter(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
@@ -500,8 +502,8 @@ export function buildSerpParams(input: BuildSerpParamsInput): SerpParams {
       applyKnown(params, field, selected.key, resolveMapperDefault(field, input.values[field.key]));
     }
   }
-  // 顶层多选属性（cr / lr）：只在用户实际选了值时才生效，
-  // 空数组不覆盖 mapper 或旧工作流里已有的值
+  // Top-level multi-value properties (cr / lr): applied only when the user actually selected
+  // values; an empty array must not overwrite values coming from the mapper or an older workflow
   if (input.multiValues) {
     for (const [key, value] of Object.entries(input.multiValues)) {
       if (isBlank(value)) continue;

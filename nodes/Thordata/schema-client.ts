@@ -51,8 +51,10 @@ function cloneAndFreeze(schema: SerpSchema): SerpSchema {
   return deepFreeze(cloneValue(schema));
 }
 
-// 本模块刻意不依赖 n8n 运行时（保持可独立单测）：非校验类异常原样抛出，
-// 由节点层 execute() 的 normalizeNodeError 统一包装成 NodeOperationError。
+// This module deliberately avoids depending on the n8n runtime so that it stays independently
+// unit-testable:
+// errors other than validation errors are rethrown as-is and wrapped into a
+// NodeOperationError by normalizeNodeError in the node layer execute().
 function rethrow(error: unknown): never {
   throw error;
 }
@@ -95,8 +97,8 @@ export class SerpSchemaRepository {
       }
     }
 
-    // 用自增标识判断 finally 里的清理是否属于本次刷新：
-    // 直接引用 task 自身会命中 TS 的“变量在赋值前使用”
+    // An incrementing id tells the finally block whether this cleanup belongs to the current
+    // refresh; referencing the task itself would trip the TypeScript "used before assigned" check.
     const refreshId = (this.executionRefreshId += 1);
     const task = (async () => {
       try {
