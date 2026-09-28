@@ -6,6 +6,17 @@ import type {
 
 export const SERP_SCHEMA_AUDIENCE = 'is_serp_old=0' as const;
 
+// The engine list is loaded from the Thordata schema, but n8n only lists actions in the node
+// panel for properties that also declare static options. Keep this list at the top-level engine
+// families so it stays a short, stable shortcut instead of a copy of the 34-engine catalog that
+// would go stale; the parameter dropdown still loads every engine dynamically.
+export const SERP_ENGINE_FAMILIES: INodePropertyOptions[] = [
+  { name: 'Google', value: 'google', action: 'SERP API: Google' },
+  { name: 'Bing', value: 'bing', action: 'SERP API: Bing' },
+  { name: 'Yandex', value: 'yandex', action: 'SERP API: Yandex' },
+  { name: 'DuckDuckGo', value: 'duckduckgo', action: 'SERP API: DuckDuckGo' },
+];
+
 export type SerpSchemaValue =
   | string
   | number
@@ -449,9 +460,9 @@ type ResourceMapperFieldWithDefault = ResourceMapperFields['fields'][number] & {
   defaultValue?: string | number | boolean;
 };
 
-// n8n's resourceMapper can only store scalars: the editor writes null for any value that is not
-// a string, number or boolean (isResourceMapperValue accepts only those three typeof results),
-// so multi-value fields stay out of the mapper and are rendered as top-level node properties
+// n8n's resourceMapper only stores scalars: the editor writes any value that is not a
+// string/number/boolean as null (isResourceMapperValue accepts only those three typeof values),
+// so multi-select fields stay out of the mapper and are rendered by a top-level node property
 // instead (see the multiOptions properties in Thordata.node.ts).
 export function isMultiValueField(field: SerpFieldSchema): boolean {
   return field.control === 'multi_select';

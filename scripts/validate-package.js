@@ -98,8 +98,7 @@ function npmCliCandidatesFromExecutable(executable) {
   try {
     candidates.unshift(realpathSync(executable));
   } catch {
-    // When the platform locator returns a launcher, the adjacent paths below may still resolve to
-    // the npm CLI.
+    // When the platform locator returns a launcher, the sibling paths below can still resolve to the npm CLI.
   }
   return candidates;
 }
@@ -170,6 +169,11 @@ const expectedDistFiles = [
   'dist/nodes/Thordata/serp-schema.snapshot.json',
   'dist/nodes/Thordata/request.js',
   'dist/nodes/Thordata/response.js',
+  'dist/nodes/Thordata/dataset-delivery.js',
+  'dist/nodes/Thordata/dataset-package.js',
+  'dist/nodes/Thordata/dataset-request.js',
+  'dist/nodes/Thordata/dataset-schema-client.js',
+  'dist/nodes/Thordata/dataset-schema.js',
 ].sort();
 const expectedRegistration = {
   n8nNodesApiVersion: 1,
@@ -180,7 +184,7 @@ const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.4', 'Unexpected package version');
+assert(packageJson.version === '0.1.5', 'Unexpected package version');
 assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');
@@ -289,6 +293,13 @@ deepStrictEqual(
       required: true,
       password: false,
     },
+    {
+      name: 'datasetEndpoint',
+      type: 'string',
+      default: 'https://api.thordata.com/api/n8n',
+      required: true,
+      password: false,
+    },
   ],
   'Unexpected credential properties',
 );
@@ -391,7 +402,7 @@ deepStrictEqual(
 const { Thordata } = require(resolve(packageRoot, compiledNodePath));
 const node = new Thordata();
 const nodeDescription = node.description;
-// n8n's review rules require this standard wording for dynamic dropdowns (options + loadOptionsMethod)
+// n8n's review rules require dynamic dropdowns (options + loadOptionsMethod) to use this exact wording
 const DYNAMIC_OPTIONS_DESCRIPTION = 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>';
 deepStrictEqual(
   {
@@ -425,25 +436,30 @@ deepStrictEqual(
 
 deepStrictEqual(
   nodeDescription.properties.map(({ name }) => name),
-  ['resource', 'operation', 'parameters', 'encodedLocationValue', 'cr', 'lr', 'options'],
+  [
+    'resource', 'operation', 'videoDataContact', 'videoDataEmail', 'videoDataWebsite', 'purchaseType', 'datasetId', 'recordsLimit', 'packageId',
+    'deliveryId', 'format', 'downloadMode', 'deliveryType', 'bucket', 'awsAccessKey', 'awsSecretKey',
+    'region', 'targetPath', 'accountIdentifier', 'database', 'role', 'snowflakeUser',
+    'snowflakePassword', 'schemaName', 'stage', 'warehouse', 'fileName', 'operation', 'parameters',
+    'encodedLocationValue', 'cr', 'lr', 'options',
+  ],
   'Unexpected top-level node properties',
 );
-const [
-  resourceProperty,
-  operationProperty,
-  parametersProperty,
-  encodedLocationProperty,
-  multiCountriesProperty,
-  multiLanguagesProperty,
-  optionsProperty,
-] = nodeDescription.properties;
+const resourceProperty = nodeDescription.properties.find(({ name }) => name === 'resource');
+const operationProperty = nodeDescription.properties.find(({ name, typeOptions }) => name === 'operation' && typeOptions?.loadOptionsMethod === 'getSerpOperations');
+const parametersProperty = nodeDescription.properties.find(({ name }) => name === 'parameters');
+const encodedLocationProperty = nodeDescription.properties.find(({ name }) => name === 'encodedLocationValue');
+const multiCountriesProperty = nodeDescription.properties.find(({ name }) => name === 'cr');
+const multiLanguagesProperty = nodeDescription.properties.find(({ name }) => name === 'lr');
+const optionsProperty = nodeDescription.properties.find(({ name }) => name === 'options');
+assert(resourceProperty && operationProperty && parametersProperty && encodedLocationProperty && multiCountriesProperty && multiLanguagesProperty && optionsProperty, 'Missing expected SERP node properties');
 deepStrictEqual(
   resourceProperty,
   {
     displayName: 'Resource',
     name: 'resource',
     type: 'options',
-    options: [{ name: 'SERP API', value: 'serp' }],
+    options: [{ name: 'SERP API', value: 'serp' }, { name: 'Dataset', value: 'dataset' }],
     default: 'serp',
     required: true,
     noDataExpression: true,

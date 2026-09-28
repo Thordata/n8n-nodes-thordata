@@ -35,6 +35,14 @@ export class ThordataApi implements ICredentialType {
       required: true,
       description: 'Change only for internal or development environments.',
     },
+    {
+      displayName: 'Dataset API Base URL',
+      name: 'datasetEndpoint',
+      type: 'string',
+      default: 'https://api.thordata.com/api/n8n',
+      required: true,
+      description: 'Thordata Dataset API base URL. Dataset fields and delivery options are loaded dynamically.',
+    },
   ];
 
   authenticate: IAuthenticateGeneric = {
@@ -46,9 +54,9 @@ export class ThordataApi implements ICredentialType {
     },
   };
 
-  // n8n requires community node credentials to expose an executable test. This issues a minimal
-  // SERP query: a 2xx response means the credential is usable, and failures surface the upstream
-  // status code. Note that a successful test consumes one credit.
+  // n8n requires community-node credentials to provide an executable test, so this sends one
+  // minimal SERP request: a 2xx response means the credential works, a failure surfaces the
+  // upstream status code directly. Note that a successful test consumes one credit.
   test: ICredentialTestRequest = {
     request: {
       method: 'POST',

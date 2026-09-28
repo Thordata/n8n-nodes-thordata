@@ -38,7 +38,7 @@ export interface SerpRequestOptions {
 }
 
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-// The dashboard joins multi-values for cr / lr with "|"; other array fields use commas
+// The dashboard joins multiple cr / lr values with "|" and other array fields with commas
 const PIPE_JOINED_ARRAY_KEYS = new Set(['cr', 'lr']);
 const UULE_LENGTH_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const AUTO_UULE_ENGINES = new Set([
@@ -53,9 +53,9 @@ const AUTO_UULE_ENGINES = new Set([
   'bing',
 ]);
 
-// This module deliberately avoids depending on the n8n runtime so that it stays a set of pure,
-// independently unit-testable functions: it only throws domain errors, and normalizeNodeError
-// in the node layer execute() wraps them into NodeOperationError.
+// This module deliberately has no n8n runtime dependency so it stays a pure, unit-testable
+// function set: it only throws domain errors, and execute() wraps them as NodeOperationError
+// through normalizeNodeError.
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -64,8 +64,7 @@ function rethrow(error: unknown): never {
   throw error;
 }
 
-// Equivalent to /[\u0000-\u001f\u007f]/ but avoids writing a control-character regex in the
-// source, which the n8n review rejects via no-control-regex.
+// Equivalent to /[\u0000-\u001f\u007f]/, written this way to keep control characters out of the source (n8n's no-control-regex review rule)
 function hasControlCharacter(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
@@ -502,8 +501,8 @@ export function buildSerpParams(input: BuildSerpParamsInput): SerpParams {
       applyKnown(params, field, selected.key, resolveMapperDefault(field, input.values[field.key]));
     }
   }
-  // Top-level multi-value properties (cr / lr): applied only when the user actually selected
-  // values; an empty array must not overwrite values coming from the mapper or an older workflow
+  // Top-level multi-select properties (cr / lr) only take effect once the user picks a value:
+  // an empty array never overwrites the mapper or values already stored in an older workflow.
   if (input.multiValues) {
     for (const [key, value] of Object.entries(input.multiValues)) {
       if (isBlank(value)) continue;

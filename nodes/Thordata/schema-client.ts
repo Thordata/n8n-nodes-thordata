@@ -51,10 +51,8 @@ function cloneAndFreeze(schema: SerpSchema): SerpSchema {
   return deepFreeze(cloneValue(schema));
 }
 
-// This module deliberately avoids depending on the n8n runtime so that it stays independently
-// unit-testable:
-// errors other than validation errors are rethrown as-is and wrapped into a
-// NodeOperationError by normalizeNodeError in the node layer execute().
+// This module deliberately has no n8n runtime dependency so it stays unit-testable: non-validation
+// errors are re-thrown as-is and execute() wraps them as NodeOperationError via normalizeNodeError.
 function rethrow(error: unknown): never {
   throw error;
 }
@@ -97,8 +95,8 @@ export class SerpSchemaRepository {
       }
     }
 
-    // An incrementing id tells the finally block whether this cleanup belongs to the current
-    // refresh; referencing the task itself would trip the TypeScript "used before assigned" check.
+    // An incrementing token decides whether the cleanup in finally belongs to this refresh:
+    // referencing the task itself trips TypeScript's "used before assigned" check.
     const refreshId = (this.executionRefreshId += 1);
     const task = (async () => {
       try {
