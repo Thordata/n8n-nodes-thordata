@@ -15,14 +15,14 @@ function unwrap(payload: unknown): unknown {
 
 export async function loadDatasetCatalog(context: ILoadOptionsFunctions, baseUrl: string): Promise<INodePropertyOptions[]> {
   const options = buildDatasetRequestOptions({ baseUrl, path: '/datasets', method: 'GET' });
-  const payload = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataApi', options);
+  const payload = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataDatasetApi', options);
   return toDatasetOptions(unwrap(payload));
 }
 
 export async function loadDatasetSchema(context: ILoadOptionsFunctions, baseUrl: string, datasetId: string): Promise<DatasetSchema> {
   if (!datasetId) return { dataset_id: '', fields: [] };
   const options = buildDatasetRequestOptions({ baseUrl, path: `/datasets/${encodeURIComponent(datasetId)}/schema`, method: 'GET' });
-  const payload = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataApi', options);
+  const payload = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataDatasetApi', options);
   const value = unwrap(payload);
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid dataset schema response');
   const schema = value as DatasetSchema;

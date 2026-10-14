@@ -14,6 +14,8 @@ import type {
   ResourceMapperFields,
 } from 'n8n-workflow';
 
+import { THORDATA_DATASET_API_BASE_URL, THORDATA_SERP_ENDPOINT } from '../../endpoints';
+
 import {
   buildSchemaRequestOptions,
   serpSchemaRepository,
@@ -163,7 +165,7 @@ export class Thordata implements INodeType {
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"]}}',
-    description: 'Search with Thordata SERP API',
+    description: 'Search engines and datasets with the Thordata API',
     defaults: {
       name: 'Thordata',
     },
@@ -171,9 +173,17 @@ export class Thordata implements INodeType {
     outputs: ['main' as NodeConnectionType],
     usableAsTool: true,
     credentials: [
+      // Each resource authenticates with its own key: the Dataset API rejects a SERP key, so the
+      // two credentials are gated on the resource and are never both required at once.
       {
         name: 'thordataApi',
         required: true,
+        displayOptions: { show: { '/resource': ['serp'] } },
+      },
+      {
+        name: 'thordataDatasetApi',
+        required: true,
+        displayOptions: { show: { '/resource': ['dataset'] } },
       },
     ],
     properties: [
@@ -199,27 +209,14 @@ export class Thordata implements INodeType {
         noDataExpression: true,
         displayOptions: { show: { resource: ['dataset'] } },
       },
-      // Each notice renders on its own line. Older n8n versions drop <br> inside a notice, so the
-      // contact details are three notices instead of one string with line breaks.
       {
-        displayName: '<strong>Contact Us</strong>',
+        displayName: 'Contact Us',
         name: 'videoDataContact',
-        type: 'notice',
-        default: '',
-        displayOptions: { show: { resource: ['dataset'], operation: ['videoData'] } },
-      },
-      {
-        displayName: 'Email: support@thordata.com',
-        name: 'videoDataEmail',
-        type: 'notice',
-        default: '',
-        displayOptions: { show: { resource: ['dataset'], operation: ['videoData'] } },
-      },
-      {
-        displayName: 'Website: <a href="https://www.thordata.com/?ls=video&amp;lk=video" target="_blank">thordata.com</a>',
-        name: 'videoDataWebsite',
-        type: 'notice',
-        default: '',
+        type: 'string',
+        typeOptions: { rows: 3 },
+        default: 'Email: support@thordata.com\nWebsite: https://www.thordata.com/?ls=video&lk=video',
+        description: 'Contact Thordata for Video Data support and dataset availability',
+        noDataExpression: true,
         displayOptions: { show: { resource: ['dataset'], operation: ['videoData'] } },
       },
       {
@@ -294,14 +291,6 @@ export class Thordata implements INodeType {
         displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['s3'] } },
       },
       {
-        displayName: 'AWS Access Key', name: 'awsAccessKey', type: 'string', typeOptions: { password: true }, default: '', required: true,
-        displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['s3'] } },
-      },
-      {
-        displayName: 'AWS Secret Key', name: 'awsSecretKey', type: 'string', typeOptions: { password: true }, default: '', required: true,
-        displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['s3'] } },
-      },
-      {
         displayName: 'Region', name: 'region', type: 'string', default: '',
         displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['s3'] } },
       },
@@ -323,10 +312,6 @@ export class Thordata implements INodeType {
       },
       {
         displayName: 'User', name: 'snowflakeUser', type: 'string', default: '', required: true,
-        displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['snowflake'] } },
-      },
-      {
-        displayName: 'Password', name: 'snowflakePassword', type: 'string', typeOptions: { password: true }, default: '', required: true,
         displayOptions: { show: { resource: ['dataset'], operation: ['deliverDataset'], deliveryType: ['snowflake'] } },
       },
       {
@@ -458,19 +443,17 @@ export class Thordata implements INodeType {
         }];
       },
       async getDatasetOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-        const credentials = await this.getCredentials('thordataApi');
-        return loadDatasetCatalog(this, String(credentials.datasetEndpoint));
+        return loadDatasetCatalog(this, THORDATA_DATASET_API_BASE_URL);
       },
       async getDatasetPackages(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
         const datasetId = String(this.getCurrentNodeParameter('datasetId') ?? '');
         if (!datasetId) return [];
         const type = this.getCurrentNodeParameter('purchaseType') === 'subscription' ? 'subscription' : 'snapshot';
-        const credentials = await this.getCredentials('thordataApi');
         const options = buildDatasetRequestOptions({
-          baseUrl: String(credentials.datasetEndpoint),
+          baseUrl: THORDATA_DATASET_API_BASE_URL,
           path: `/datasets/${encodeURIComponent(datasetId)}/capabilities`, method: 'GET',
         });
-        const response = await this.helpers.httpRequestWithAuthentication.call(this, 'thordataApi', options);
+        const response = await this.helpers.httpRequestWithAuthentication.call(this, 'thordataDatasetApi', options);
         return toDatasetPackageOptions(datasetPackages(normalizeDatasetResponse(response)), type);
       },
       async getDatasetRecordOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -478,12 +461,11 @@ export class Thordata implements INodeType {
         if (!datasetId) return [];
         const type = this.getCurrentNodeParameter('purchaseType') === 'subscription' ? 'subscription' : 'snapshot';
         const packageId = Number(this.getCurrentNodeParameter('packageId') ?? 0);
-        const credentials = await this.getCredentials('thordataApi');
         const options = buildDatasetRequestOptions({
-          baseUrl: String(credentials.datasetEndpoint),
+          baseUrl: THORDATA_DATASET_API_BASE_URL,
           path: `/datasets/${encodeURIComponent(datasetId)}/capabilities`, method: 'GET',
         });
-        const response = await this.helpers.httpRequestWithAuthentication.call(this, 'thordataApi', options);
+        const response = await this.helpers.httpRequestWithAuthentication.call(this, 'thordataDatasetApi', options);
         return toDatasetRecordOptions(datasetPackages(normalizeDatasetResponse(response)), type, packageId);
       },
     },
@@ -563,8 +545,6 @@ export class Thordata implements INodeType {
         for (const field of MULTI_VALUE_PROPERTIES) {
           multiValues[field.name] = this.getNodeParameter(field.name, itemIndex, []);
         }
-        const credentials = await this.getCredentials('thordataApi', itemIndex);
-        const endpoint = String(credentials.endpoint);
         // uule is derived from location by buildSerpParams (encodedLocationValue is display only)
         const params = buildSerpParams({
           schema,
@@ -574,7 +554,10 @@ export class Thordata implements INodeType {
           multiValues,
         });
         const engineSchema = findEngine(schema, operation);
-        const requestOptions = buildSerpRequestOptions({ endpoint, params });
+        const requestOptions = buildSerpRequestOptions({
+          endpoint: THORDATA_SERP_ENDPOINT,
+          params,
+        });
         const payload = await this.helpers.httpRequestWithAuthentication.call(
           this,
           'thordataApi',
@@ -671,7 +654,7 @@ async function datasetCommonBody(
   const options = buildDatasetRequestOptions({
     baseUrl, path: `/datasets/${encodeURIComponent(id)}/capabilities`, method: 'GET',
   });
-  const response = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataApi', options);
+  const response = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataDatasetApi', options);
   const packages = datasetPackages(normalizeDatasetResponse(response));
   const packageId = chooseDatasetPackageId(packages, type, datasetOption(context, itemIndex, 'packageId', 0));
   const recordsLimit = chooseDatasetRecordLimit(packages, type, packageId, datasetOption(context, itemIndex, 'recordsLimit', 0));
@@ -710,25 +693,55 @@ function datasetDeliveryOrSnapshotID(context: IExecuteFunctions, itemIndex: numb
   return id;
 }
 
-function datasetDeliveryConfig(context: IExecuteFunctions, itemIndex: number, deliveryType: string): Record<string, unknown> {
+// n8n validates the required delivery credential before execution, so this only fires when the
+// stored credential is genuinely unusable; turn that into an actionable message that keeps the
+// underlying reason instead of surfacing a raw lookup failure.
+async function deliveryCredential(
+  context: IExecuteFunctions,
+  itemIndex: number,
+  name: string,
+  label: string,
+): Promise<Record<string, unknown>> {
+  try {
+    return await context.getCredentials(name, itemIndex) as Record<string, unknown>;
+  } catch (error) {
+    throw new NodeOperationError(
+      context.getNode(),
+      `Select a ${label} credential for the Dataset delivery destination`,
+      { itemIndex, description: toError(error).message },
+    );
+  }
+}
+
+async function datasetDeliveryConfig(
+  context: IExecuteFunctions,
+  itemIndex: number,
+  deliveryType: string,
+): Promise<Record<string, unknown>> {
   const fileName = String(datasetOption(context, itemIndex, 'fileName', '') || '');
   if (deliveryType === 's3') {
+    const { accessKeyId, secretAccessKey } = await deliveryCredential(
+      context, itemIndex, 'thordataDatasetApi', 'Thordata Dataset API',
+    );
     return {
       Bucket: String(datasetOption(context, itemIndex, 'bucket', '')),
-      access_key: String(datasetOption(context, itemIndex, 'awsAccessKey', '')),
-      secret_key: String(datasetOption(context, itemIndex, 'awsSecretKey', '')),
+      access_key: String(accessKeyId ?? ''),
+      secret_key: String(secretAccessKey ?? ''),
       region: String(datasetOption(context, itemIndex, 'region', '') || ''),
       target_path: String(datasetOption(context, itemIndex, 'targetPath', '') || ''),
       file_name: fileName,
     };
   }
   if (deliveryType === 'snowflake') {
+    const { password } = await deliveryCredential(
+      context, itemIndex, 'thordataDatasetApi', 'Thordata Dataset API',
+    );
     return {
       account_identifier: String(datasetOption(context, itemIndex, 'accountIdentifier', '')),
       database: String(datasetOption(context, itemIndex, 'database', '')),
       role: String(datasetOption(context, itemIndex, 'role', '')),
       user: String(datasetOption(context, itemIndex, 'snowflakeUser', '')),
-      pwd: String(datasetOption(context, itemIndex, 'snowflakePassword', '')),
+      pwd: String(password ?? ''),
       schema: String(datasetOption(context, itemIndex, 'schemaName', '')),
       stage: String(datasetOption(context, itemIndex, 'stage', '')),
       warehouse: String(datasetOption(context, itemIndex, 'warehouse', '')),
@@ -740,8 +753,7 @@ function datasetDeliveryConfig(context: IExecuteFunctions, itemIndex: number, de
 
 async function executeDatasetOperation(context: IExecuteFunctions, itemIndex: number): Promise<unknown> {
   const operation = String(context.getNodeParameter('operation', itemIndex, 'listDatasets'));
-  const credentials = await context.getCredentials('thordataApi', itemIndex);
-  const baseUrl = String(credentials.datasetEndpoint || '').trim();
+  const baseUrl = THORDATA_DATASET_API_BASE_URL;
   const snapshotID = () => datasetDeliveryOrSnapshotID(context, itemIndex);
   const subscriptionID = () => requiredDatasetOption(context, itemIndex, 'subscriptionId');
   const deliveryID = () => requiredDatasetOption(context, itemIndex, 'deliveryId');
@@ -796,7 +808,7 @@ async function executeDatasetOperation(context: IExecuteFunctions, itemIndex: nu
       body = {
         type: deliveryType,
         format: String(datasetOption(context, itemIndex, 'format', 'csv.gz')),
-        config: datasetDeliveryConfig(context, itemIndex, deliveryType),
+        config: await datasetDeliveryConfig(context, itemIndex, deliveryType),
       };
       idempotencyKey = createDatasetIdempotencyKey('delivery');
       break;
@@ -844,7 +856,7 @@ async function executeDatasetOperation(context: IExecuteFunctions, itemIndex: nu
   }
 
   const options = buildDatasetRequestOptions({ baseUrl, path, method, body, query, idempotencyKey });
-  const response = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataApi', options);
+  const response = await context.helpers.httpRequestWithAuthentication.call(context, 'thordataDatasetApi', options);
   const normalized = normalizeDatasetResponse(response);
   if (resolvedSnapshotId && normalized !== null && typeof normalized === 'object' && !Array.isArray(normalized)) {
     // Echo the id the node addressed so a following node can chain on it; a record's own
@@ -860,8 +872,7 @@ async function executeDatasetDownload(
   context: IExecuteFunctions,
   itemIndex: number,
 ): Promise<INodeExecutionData[]> {
-  const credentials = await context.getCredentials('thordataApi', itemIndex);
-  const baseUrl = String(credentials.datasetEndpoint || '').trim();
+  const baseUrl = THORDATA_DATASET_API_BASE_URL;
   const snapshotId = datasetDeliveryOrSnapshotID(context, itemIndex);
   const format = String(datasetOption(context, itemIndex, 'format', 'csv.gz')).trim().toLowerCase();
 
@@ -874,7 +885,7 @@ async function executeDatasetDownload(
   });
   const response = await context.helpers.httpRequestWithAuthentication.call(
     context,
-    'thordataApi',
+    'thordataDatasetApi',
     options,
   );
   const urls = matchingDatasetDownloadUrls(context.getNode(), normalizeDatasetResponse(response), format);
@@ -1037,7 +1048,7 @@ async function requireDatasetSnapshotReady(
   });
   const response = await context.helpers.httpRequestWithAuthentication.call(
     context,
-    'thordataApi',
+    'thordataDatasetApi',
     options,
   );
   assertDatasetSnapshotReady(normalizeDatasetResponse(response));

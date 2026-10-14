@@ -42,6 +42,9 @@ jobs:
         run: npm run build
 
       - name: Validate package
+        run: npm run validate:package
+
+      - name: Lint with the n8n community node rules
         run: npm run lint
 
       - name: Check tag matches package version

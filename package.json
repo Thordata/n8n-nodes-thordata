@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-thordata",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Thordata SERP API community node for n8n",
   "license": "MIT",
   "author": {
@@ -17,6 +17,7 @@
     "n8n-community-node-package",
     "n8n",
     "serp",
+    "dataset",
     "thordata"
   ],
   "files": [
@@ -27,7 +28,8 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/ThordataApi.credentials.js"
+      "dist/credentials/ThordataApi.credentials.js",
+      "dist/credentials/ThordataDatasetApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/Thordata/Thordata.node.js"
@@ -36,9 +38,10 @@
   "scripts": {
     "build": "node scripts/clean-dist.js && tsc && node scripts/copy-assets.js",
     "test": "jest --runInBand",
-    "lint": "node scripts/validate-package.js",
+    "lint": "n8n-node lint",
+    "validate:package": "node scripts/validate-package.js",
     "update:schema": "npm run build && node scripts/update-serp-snapshot.js",
-    "verify": "npm run build && npm run lint && npm test",
+    "verify": "npm run build && npm run validate:package && npm test && npm run lint",
     "prepack": "npm run verify"
   },
   "dependencies": {},

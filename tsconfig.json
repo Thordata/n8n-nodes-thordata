@@ -13,6 +13,7 @@
   },
   "include": [
     "index.ts",
+    "endpoints.ts",
     "credentials/**/*.ts",
     "nodes/**/*.ts",
     "nodes/**/*.json"

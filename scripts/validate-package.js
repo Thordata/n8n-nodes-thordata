@@ -142,6 +142,7 @@ function validateTrackedText() {
   for (const trackedPath of trackedPaths) {
     if (trackedPath.startsWith('docs/superpowers/')) continue;
     const absolutePath = resolve(packageRoot, trackedPath);
+    if (!existsSync(absolutePath)) continue;
     const trackedStat = lstatSync(absolutePath);
     assertNotSymlink(trackedStat);
     if (!trackedStat.isFile()) continue;
@@ -156,7 +157,9 @@ function validateTrackedText() {
 const expectedFiles = ['dist', 'README.md', 'LICENSE'];
 const expectedDistFiles = [
   'dist/index.js',
+  'dist/endpoints.js',
   'dist/credentials/ThordataApi.credentials.js',
+  'dist/credentials/ThordataDatasetApi.credentials.js',
   'dist/credentials/thordata.svg',
   'dist/credentials/thordata.dark.svg',
   'dist/nodes/Thordata/Thordata.node.js',
@@ -177,20 +180,23 @@ const expectedDistFiles = [
 ].sort();
 const expectedRegistration = {
   n8nNodesApiVersion: 1,
-  credentials: ['dist/credentials/ThordataApi.credentials.js'],
+  credentials: [
+    'dist/credentials/ThordataApi.credentials.js',
+    'dist/credentials/ThordataDatasetApi.credentials.js',
+  ],
   nodes: ['dist/nodes/Thordata/Thordata.node.js'],
 };
 const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.5', 'Unexpected package version');
+assert(packageJson.version === '0.1.6', 'Unexpected package version');
 assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');
 assert(packageJson.homepage === 'https://www.thordata.com', 'Unexpected package homepage');
 assert(packageJson.main === 'dist/index.js', 'Package main must be dist/index.js');
-for (const keyword of ['n8n-community-node-package', 'n8n', 'serp', 'thordata']) {
+for (const keyword of ['n8n-community-node-package', 'n8n', 'serp', 'dataset', 'thordata']) {
   assert(packageJson.keywords.includes(keyword), `Missing package keyword: ${keyword}`);
 }
 assert(JSON.stringify(packageJson.files) === JSON.stringify(expectedFiles), 'Unexpected published files');
@@ -200,7 +206,9 @@ assert(
   'Runtime dependencies are not allowed',
 );
 deepStrictEqual(packageJson.peerDependencies, { 'n8n-workflow': '*' }, 'Unexpected peer dependencies');
-assert(packageJson.scripts.verify === 'npm run build && npm run lint && npm test', 'Unexpected verify script');
+assert(packageJson.scripts.lint === 'n8n-node lint', 'Official n8n lint must run');
+assert(packageJson.scripts['validate:package'] === 'node scripts/validate-package.js', 'Unexpected package validation script');
+assert(packageJson.scripts.verify === 'npm run build && npm run validate:package && npm test && npm run lint', 'Unexpected verify script');
 assert(packageJson.scripts.prepack === 'npm run verify', 'Unexpected prepack script');
 
 const sourceDirectories = ['credentials', 'nodes', 'scripts', 'test'];
@@ -260,10 +268,31 @@ assert(
   'Credential test must be typed as ICredentialTestRequest',
 );
 
+// n8n review rule: the package must not be able to point at an arbitrary host. Both Thordata
+// service URLs are compile-time constants, so no credential may declare a URL-shaped field.
+const { THORDATA_DATASET_API_BASE_URL, THORDATA_SERP_ENDPOINT } = require(
+  resolve(packageRoot, 'dist/endpoints.js'),
+);
+assert(
+  THORDATA_SERP_ENDPOINT === 'https://scraperapi.thordata.com/request',
+  'Unexpected SERP endpoint constant',
+);
+assert(
+  THORDATA_DATASET_API_BASE_URL === 'https://api.thordata.com/api/n8n',
+  'Unexpected Dataset API base URL constant',
+);
+
+const auxiliaryCredentialPaths = [
+  'credentials/ThordataDatasetApi.credentials.ts',
+];
+for (const auxiliaryCredentialPath of auxiliaryCredentialPaths) {
+  assert(exists(auxiliaryCredentialPath), `Missing required source: ${auxiliaryCredentialPath}`);
+}
+
 const { ThordataApi } = require(resolve(packageRoot, compiledCredentialPath));
 const credential = new ThordataApi();
 assert(credential.name === 'thordataApi', 'Unexpected credential name');
-assert(credential.displayName === 'Thordata API', 'Unexpected credential display name');
+assert(credential.displayName === 'Thordata SERP API', 'Unexpected credential display name');
 assert(credential.documentationUrl === 'https://doc.thordata.com', 'Unexpected credential documentation URL');
 deepStrictEqual(
   credential.icon,
@@ -286,20 +315,6 @@ deepStrictEqual(
       required: true,
       password: true,
     },
-    {
-      name: 'endpoint',
-      type: 'string',
-      default: 'https://scraperapi.thordata.com/request',
-      required: true,
-      password: false,
-    },
-    {
-      name: 'datasetEndpoint',
-      type: 'string',
-      default: 'https://api.thordata.com/api/n8n',
-      required: true,
-      password: false,
-    },
   ],
   'Unexpected credential properties',
 );
@@ -320,13 +335,81 @@ deepStrictEqual(
   {
     request: {
       method: 'POST',
-      url: '={{$credentials.endpoint}}',
+      url: THORDATA_SERP_ENDPOINT,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'engine=google&q=thordata&json=1&isjson=1',
     },
   },
   'Unexpected credential test request',
 );
+
+// Dataset delivery fields are optional because only the destination selected by the node needs
+// its matching secret. The public Access Key ID is not masked.
+const expectedAuxiliaryCredentials = {
+  'dist/credentials/ThordataDatasetApi.credentials.js': {
+    name: 'thordataDatasetApi',
+    displayName: 'Thordata Dataset API',
+    properties: ['apiKey', 'accessKeyId', 'secretAccessKey', 'password'],
+    requiredFields: ['apiKey'],
+    secretFields: ['apiKey', 'secretAccessKey', 'password'],
+    testUrl: `${THORDATA_DATASET_API_BASE_URL}/datasets`,
+  },
+};
+for (const [compiledPath, expected] of Object.entries(expectedAuxiliaryCredentials)) {
+  assert(exists(compiledPath), `Missing built runtime: ${compiledPath}`);
+  const module = require(resolve(packageRoot, compiledPath));
+  const CredentialClass = module[Object.keys(module).find((key) => key !== '__esModule')];
+  const auxiliaryCredential = new CredentialClass();
+  assert(auxiliaryCredential.name === expected.name, `Unexpected credential name for ${compiledPath}`);
+  assert(auxiliaryCredential.displayName === expected.displayName, `Unexpected display name for ${compiledPath}`);
+  assert(
+    auxiliaryCredential.documentationUrl === 'https://doc.thordata.com',
+    `Unexpected documentation URL for ${compiledPath}`,
+  );
+  deepStrictEqual(
+    auxiliaryCredential.properties.map(({ name }) => name),
+    expected.properties,
+    `Unexpected properties for ${compiledPath}`,
+  );
+  for (const property of auxiliaryCredential.properties) {
+    assert(
+      (property.typeOptions?.password ?? false) === expected.secretFields.includes(property.name),
+      `${compiledPath}.${property.name} has unexpected password masking`,
+    );
+    assert(
+      property.required === expected.requiredFields.includes(property.name),
+      `${compiledPath}.${property.name} has an unexpected required flag`,
+    );
+  }
+  if (expected.testUrl) {
+    deepStrictEqual(
+      auxiliaryCredential.test,
+      { request: { method: 'GET', url: expected.testUrl } },
+      `Unexpected credential test for ${compiledPath}`,
+    );
+    deepStrictEqual(
+      auxiliaryCredential.authenticate,
+      {
+        type: 'generic',
+        properties: { headers: { Authorization: '=Bearer {{$credentials.apiKey}}' } },
+      },
+      `Unexpected authentication for ${compiledPath}`,
+    );
+  }
+}
+
+// No credential may expose a request URL: the node talks only to the two fixed Thordata hosts.
+for (const credentialSourcePath of [credentialPath, ...auxiliaryCredentialPaths]) {
+  const source = readSource(credentialSourcePath);
+  assert(
+    !/name:\s*'(?:endpoint|datasetEndpoint|baseUrl|url)'/.test(source),
+    `${credentialSourcePath} must not declare a request URL field`,
+  );
+  assert(
+    !/\{\{\$credentials\.(?:endpoint|datasetEndpoint|baseUrl|url)\}\}/.test(source),
+    `${credentialSourcePath} must not build a request URL from a credential field`,
+  );
+}
 
 const { BUNDLED_SERP_SCHEMA } = require(
   resolve(packageRoot, 'dist/nodes/Thordata/schema-snapshot.js'),
@@ -424,23 +507,48 @@ deepStrictEqual(
     icon: { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' },
     group: ['transform'],
     version: 1,
-    description: 'Search with Thordata SERP API',
+    description: 'Search engines and datasets with the Thordata API',
     defaults: { name: 'Thordata' },
     inputs: ['main'],
     outputs: ['main'],
     usableAsTool: true,
-    credentials: [{ name: 'thordataApi', required: true }],
+    credentials: [
+      {
+        name: 'thordataApi',
+        required: true,
+        displayOptions: { show: { '/resource': ['serp'] } },
+      },
+      {
+        name: 'thordataDatasetApi',
+        required: true,
+        displayOptions: { show: { '/resource': ['dataset'] } },
+      },
+    ],
   },
   'Unexpected node identity or credentials',
+);
+
+// n8n review rule: no notices in the node description, and no password field anywhere in it.
+deepStrictEqual(
+  nodeDescription.properties.filter(({ type }) => type === 'notice').map(({ name }) => name),
+  [],
+  'The node description must not contain notices',
+);
+deepStrictEqual(
+  nodeDescription.properties
+    .filter(({ typeOptions }) => typeOptions?.password === true)
+    .map(({ name }) => name),
+  [],
+  'The node description must not contain password fields; secrets belong in credentials',
 );
 
 deepStrictEqual(
   nodeDescription.properties.map(({ name }) => name),
   [
-    'resource', 'operation', 'videoDataContact', 'videoDataEmail', 'videoDataWebsite', 'purchaseType', 'datasetId', 'recordsLimit', 'packageId',
-    'deliveryId', 'format', 'downloadMode', 'deliveryType', 'bucket', 'awsAccessKey', 'awsSecretKey',
+    'resource', 'operation', 'videoDataContact', 'purchaseType', 'datasetId', 'recordsLimit', 'packageId',
+    'deliveryId', 'format', 'downloadMode', 'deliveryType', 'bucket',
     'region', 'targetPath', 'accountIdentifier', 'database', 'role', 'snowflakeUser',
-    'snowflakePassword', 'schemaName', 'stage', 'warehouse', 'fileName', 'operation', 'parameters',
+    'schemaName', 'stage', 'warehouse', 'fileName', 'operation', 'parameters',
     'encodedLocationValue', 'cr', 'lr', 'options',
   ],
   'Unexpected top-level node properties',
@@ -663,10 +771,28 @@ for (const [label, source] of [
 }
 assert(!/"disabled"/i.test(serializedDescription), 'Compiled node description must not contain disabled resources');
 for (const [label, endpoint] of [
-  ['credential endpoint', credential.properties.find(({ name }) => name === 'endpoint')?.default],
+  ['SERP endpoint', THORDATA_SERP_ENDPOINT],
+  ['Dataset endpoint', THORDATA_DATASET_API_BASE_URL],
   ['schema endpoint', SERP_SCHEMA_URL],
 ]) {
   assert(!/web.?scraper/i.test(String(endpoint)), `${label} must not expose Web Scraper`);
+  assert(/^https?:\/\/[\w.-]+thordata\.com\//.test(String(endpoint)), `${label} must stay on a Thordata host`);
+}
+
+// The shipped runtime must only ever target the two Thordata hosts. n8n's own documentation URL is
+// the single allowed exception because n8n requires it in the dynamic-dropdown description text;
+// any other host would make the node a proxy layer, which n8n's verification rules reject.
+const allowedUrlPattern = /^https?:\/\/(?:[\w.-]+\.)?thordata\.com(?:[/:]|$)/u;
+const n8nDocsUrlPattern = /^https:\/\/docs\.n8n\.io\//u;
+for (const builtFile of expectedDistFiles.filter((file) => file.endsWith('.js'))) {
+  const source = readSource(builtFile);
+  const urls = source.match(/https?:\/\/[^\s'"`)<]+/gu) ?? [];
+  for (const url of urls) {
+    assert(
+      allowedUrlPattern.test(url) || n8nDocsUrlPattern.test(url),
+      `${builtFile} references a non-Thordata URL: ${url}`,
+    );
+  }
 }
 
 const productionTextPaths = [
@@ -674,6 +800,7 @@ const productionTextPaths = [
   'README.md',
   'LICENSE',
   'index.ts',
+  'endpoints.ts',
   ...listFiles('credentials').filter((file) => file.endsWith('.ts')),
   ...listFiles('nodes').filter((file) => /\.(?:ts|json|svg)$/i.test(file)),
   ...expectedDistFiles,

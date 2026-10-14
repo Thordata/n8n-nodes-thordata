@@ -7,6 +7,8 @@
  *                 → http://serp-dev-test.thordata.com/request_testasdadsa
  *   - schema API:          https://api.thordata.com/serp/playground/schema?lang=en
  *                 → http://api-dev-test.thordata.com/serp/playground/schema?lang=en
+ *   - Dataset API base URL: https://api.thordata.com/api/n8n
+ *                 → http://api-dev-test.thordata.com/api/n8n
  * Assertions on those domains in the test/validation scripts and the README wording are rewritten too.
  *
  * Usage: node scripts/sync-test-variant.mjs [--target <directory>]
@@ -40,8 +42,16 @@ const SUBSTITUTIONS = [
     'http://api-dev-test.thordata.com/serp/playground/schema?lang=en',
   ],
   [
+    'https://api.thordata.com/api/n8n',
+    'http://api-dev-test.thordata.com/api/n8n',
+  ],
+  [
     'community node for Thordata.',
     "community node for Thordata's test environment.",
+  ],
+  [
+    'uses the production Dataset API host',
+    'uses the test Dataset API host',
   ],
 ];
 
@@ -66,7 +76,10 @@ let substituted = 0;
 for (const rel of walkFiles(PACKAGE_ROOT)) {
   const source = readFileSync(join(PACKAGE_ROOT, rel), 'utf8').split('\r\n').join('\n');
   let next = source;
-  for (const [from, to] of SUBSTITUTIONS) {
+  // The sync script keeps its original substitution rules so that replacing its own strings never
+  // breaks quotes or mappings.
+  const substitutions = rel === 'scripts/sync-test-variant.mjs' ? [] : SUBSTITUTIONS;
+  for (const [from, to] of substitutions) {
     if (next.includes(from)) {
       next = next.split(from).join(to);
       substituted += 1;

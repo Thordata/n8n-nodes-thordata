@@ -6,15 +6,19 @@ import type {
   INodeProperties,
 } from 'n8n-workflow';
 
+import { THORDATA_SERP_ENDPOINT } from '../endpoints';
+
 export class ThordataApi implements ICredentialType {
   name = 'thordataApi';
 
-  displayName = 'Thordata API';
+  displayName = 'Thordata SERP API';
 
   icon: Icon = { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' };
 
   documentationUrl = 'https://doc.thordata.com';
 
+  // The API key is the only secret on this credential. The service URL the node talks to is a
+  // compile-time constant, so this credential cannot redirect traffic to another host.
   properties: INodeProperties[] = [
     {
       displayName: 'API Key',
@@ -25,23 +29,7 @@ export class ThordataApi implements ICredentialType {
       },
       default: '',
       required: true,
-      description: 'Thordata API Key used to authenticate SERP requests.',
-    },
-    {
-      displayName: 'SERP Endpoint',
-      name: 'endpoint',
-      type: 'string',
-      default: 'https://scraperapi.thordata.com/request',
-      required: true,
-      description: 'Change only for internal or development environments.',
-    },
-    {
-      displayName: 'Dataset API Base URL',
-      name: 'datasetEndpoint',
-      type: 'string',
-      default: 'https://api.thordata.com/api/n8n',
-      required: true,
-      description: 'Thordata Dataset API base URL. Dataset fields and delivery options are loaded dynamically.',
+      description: 'Thordata SERP API key used to authenticate search requests',
     },
   ];
 
@@ -60,7 +48,7 @@ export class ThordataApi implements ICredentialType {
   test: ICredentialTestRequest = {
     request: {
       method: 'POST',
-      url: '={{$credentials.endpoint}}',
+      url: THORDATA_SERP_ENDPOINT,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },

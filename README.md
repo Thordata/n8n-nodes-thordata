@@ -9,7 +9,7 @@
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-`n8n-nodes-thordata` **v0.1.5** is an n8n SERP API community node for Thordata. This release does not expose Web Scraper; Dataset ships alongside it, so existing `resource=serp` workflows keep working unchanged. A later version may add another resource without changing existing `resource=serp` workflows.
+`n8n-nodes-thordata` **v0.1.6** is an n8n SERP API community node for Thordata. This release does not expose Web Scraper; Dataset ships alongside it, so existing `resource=serp` workflows keep working unchanged. A later version may add another resource without changing existing `resource=serp` workflows.
 
 ## Why teams build with Thordata + n8n
 
@@ -65,15 +65,37 @@ See n8n's [community-node installation and management guide](https://docs.n8n.io
 
 ## Credentials
 
-Create a **Thordata API** credential with:
+SERP and Dataset API keys use separate credentials. Dataset delivery secrets are stored in the Dataset API credential. The node only shows the credential that matches the **Resource** you selected.
 
-| Field | Default | Notes |
+| Resource | Credential | Field | Notes |
+|---|---|---|---|
+| SERP API | **Thordata SERP API** | **API Key** | Required password field, secret. Sent as `Authorization: Bearer <key>`. |
+| Dataset | **Thordata Dataset API** | **Dataset API Key** | Required password field, secret. Sent as `Authorization: Bearer <key>`. |
+
+**These keys are not interchangeable.** The Dataset API rejects a SERP key, so if you use the Dataset resource, paste the key from the dataset section of the Thordata console into **Thordata Dataset API**. The SERP endpoint accepts either key, so the SERP resource keeps working with a key you already have.
+
+Select **Test** on either credential to validate it:
+
+- **Thordata SERP API** sends one minimal SERP request (`engine=google&q=thordata`) to `https://scraperapi.thordata.com/request`, so **a successful test consumes one credit**.
+- **Thordata Dataset API** lists the dataset catalog at `https://api.thordata.com/api/n8n/datasets` and does not consume credits.
+
+Both service URLs the node uses are fixed in the node code and can't be edited, so a credential only ever holds your key and never decides where a request goes:
+
+| Service | URL |
+|---|---|
+| SERP API | `https://scraperapi.thordata.com/request` |
+| Dataset API | `https://api.thordata.com/api/n8n` |
+
+**Deliver Dataset** reads its destination secrets from the Dataset API credential. They live in n8n's credential store, **never in the workflow JSON**, so sharing a workflow can't leak them:
+
+| Destination | Credential | Fields |
 |---|---|---|
-| **API Key** | — | Required password field, secret. Sent as `Authorization: Bearer <key>` on every request. |
-| **SERP Endpoint** | `https://scraperapi.thordata.com/request` | Leave as-is unless you have a specific reason to change it. Treat it as a security-sensitive setting and use only a trusted internal or development endpoint. |
-| **Dataset API Base URL** | `https://api.thordata.com/api/n8n` | Where datasets are listed, purchased, downloaded, and delivered. |
+| Amazon S3 | **Thordata Dataset API** | **AWS Access Key ID** (visible), **AWS Secret Access Key** (secret, masked) |
+| Snowflake | **Thordata Dataset API** | **Snowflake Password** (secret, masked) |
 
-Select **Test** to validate the credential. The test sends one minimal SERP request (`engine=google&q=thordata`), so **a successful test consumes one credit**. The Bearer API Key is sent to the configured SERP Endpoint. Only credential administrators should change that endpoint; use a trusted internal/development endpoint when overriding it.
+The three destination fields are optional in the credential. Fill in the AWS fields only when delivering to Amazon S3, or fill in **Snowflake Password** only when delivering to Snowflake. Everything else about the destination — bucket, region, target path, file name, account, database, schema, role, user, stage, warehouse — stays on the node. Create the credential once and reuse it across workflows; per-destination values stay visible and auditable in the node itself.
+
+The **Thordata Dataset API** credential also stores the destination secrets needed by **Deliver Dataset**. The node continues to show the same S3/Snowflake destination fields.
 
 ## Choose a resource
 
@@ -140,8 +162,8 @@ A newly created snapshot may still be packing. Run **Purchase Dataset** first, t
 
 **Deliver Dataset** supports two destinations:
 
-- **Amazon S3** — `Bucket`, `AWS Access Key`, `AWS Secret Key` (secret), `Region`, `Target Path`, `File Name`.
-- **Snowflake** — `Account Identifier`, `Database`, `Schema`, `Role`, `User`, `Password` (secret), `Stage`, `Warehouse`, `File Name`.
+- **Amazon S3** — `Bucket`, `Region`, `Target Path`, `File Name` on the node, plus the **AWS Access Key ID** and **AWS Secret Access Key** in the **Thordata Dataset API** credential.
+- **Snowflake** — `Account Identifier`, `Database`, `Schema`, `Role`, `User`, `Stage`, `Warehouse`, `File Name` on the node, plus the **Snowflake Password** in the **Thordata Dataset API** credential.
 
 Available formats: `csv`, `json`, `ndjson`, and their `.gz` variants (default `csv.gz`).
 
@@ -182,15 +204,18 @@ The schema is fetched from a fixed public URL, so editor loads are fresh; execut
 
 ## Privacy and security
 
-- Your API key is only used as a `Bearer` token in request headers; it is never written to logs or bundled files.
+- Each API key is only used as a `Bearer` token in request headers for its own service; no key is written to logs or bundled files.
+- **Deliver Dataset** secrets (AWS keys, Snowflake password) are stored in n8n's credential store and read at execution time. They never appear in the workflow JSON, so sharing or exporting a workflow can't leak them.
+- No request URL is configurable: the node always calls `https://scraperapi.thordata.com/request` and `https://api.thordata.com/api/n8n`, so it can't be pointed at another host.
 - The node has **no runtime dependencies** and publishes only its compiled files, so its footprint is small and auditable.
 
 ## Troubleshooting
 
-- **The Dataset list is empty or fails to load.** Confirm the **Dataset API Base URL** and that your account has dataset access.
+- **The Dataset list is empty or fails to load.** Confirm that your account has dataset access.
 - **`Dataset is still being prepared.`** The snapshot is still packing — re-run the Download/Deliver node after a short wait, or add an n8n Wait/Retry.
 - **`Wallet balance is insufficient` (402).** Add credits to your Thordata wallet before purchasing.
-- **Test credential fails.** Check the API key and that the SERP Endpoint is reachable; note that a successful test consumes one credit.
+- **Test credential fails.** Check the API key and that `https://scraperapi.thordata.com/request` is reachable; note that a successful test consumes one credit.
+- **Deliver Dataset asks for a credential.** Select or create the **Thordata Dataset API** credential.
 
 ## Get started in minutes
 
@@ -206,6 +231,12 @@ Prefer a different surface? Thordata ships the same SERP and dataset capabilitie
 
 - **Thordata MCP Server** — give MCP-compatible AI agents live search, history and statistics. See the [Thordata documentation](https://doc.thordata.com).
 - **SERP API & SDKs** — call Thordata directly from your application. See [doc.thordata.com](https://doc.thordata.com) for guides and references.
+
+## Development checks
+
+`npm run verify` runs the build, package validation, unit tests, and the official `n8n-node lint`. The individual checks are available as `npm run build`, `npm run validate:package`, `npm test`, and `npm run lint`.
+
+The Dataset API credential test lists the catalog. The S3 and Snowflake destination secrets are forwarded to Thordata only when a delivery runs; the catalog test does not validate destination credentials.
 
 ## Support and license
 
