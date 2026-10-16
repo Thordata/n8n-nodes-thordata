@@ -2,7 +2,7 @@
 
 > **Turn real-time search results and ready-made web datasets into n8n automations.**
 >
-> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/?ls=n8n&lk=n8n) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
+> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/?ls=github01&lk=github01) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
 
 <p>
   <img alt="version" src="https://img.shields.io/npm/v/n8n-nodes-thordata">
@@ -39,7 +39,7 @@
 ## Requirements
 
 - Self-hosted n8n with community nodes enabled.
-- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=n8n&lk=n8n).
+- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=github01&lk=github01).
 
 This is an **unverified community node**, so unverified community nodes are not available on n8n Cloud; install it on self-hosted n8n only.
 
@@ -219,11 +219,11 @@ The schema is fetched from a fixed public URL, so editor loads are fresh; execut
 
 ## Get started in minutes
 
-1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=n8n&lk=n8n).
+1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github01&lk=github01).
 2. **Install the node** in self-hosted n8n (see [Installation](#installation)).
 3. **Build your first workflow** — add the Thordata node, pick *SERP API* or *Dataset*, and pull live search results or a structured dataset in a couple of clicks.
 
-Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=n8n&lk=n8n)**
+Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github01&lk=github01)**
 
 ## Explore more Thordata integrations
 
