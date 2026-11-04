@@ -39,7 +39,7 @@
 ## Requirements
 
 - Self-hosted n8n with community nodes enabled.
-- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=github01&lk=github01).
+- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=github&lk=flora-thordata).
 
 This is an **unverified community node**, so unverified community nodes are not available on n8n Cloud; install it on self-hosted n8n only.
 
