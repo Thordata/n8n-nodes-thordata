@@ -2,7 +2,7 @@
 
 > **Turn real-time search results and ready-made web datasets into n8n automations.**
 >
-> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/?ls=github01&lk=github01) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
+> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/products/serp-api/n8n-integration?op=flora&from=github) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
 
 <p>
   <img alt="version" src="https://img.shields.io/npm/v/n8n-nodes-thordata">
@@ -219,11 +219,11 @@ The schema is fetched from a fixed public URL, so editor loads are fresh; execut
 
 ## Get started in minutes
 
-1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github01&lk=github01).
+1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github&lk=flora-thordata).
 2. **Install the node** in self-hosted n8n (see [Installation](#installation)).
 3. **Build your first workflow** — add the Thordata node, pick *SERP API* or *Dataset*, and pull live search results or a structured dataset in a couple of clicks.
 
-Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github01&lk=github01)**
+Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github&lk=flora-thordata)**
 
 ## Explore more Thordata integrations
 
