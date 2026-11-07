@@ -13,7 +13,7 @@ import { THORDATA_DATASET_API_BASE_URL } from '../endpoints';
 export class ThordataDatasetApi implements ICredentialType {
   name = 'thordataDatasetApi';
 
-  displayName = 'Thordata Dataset API';
+  displayName = 'Thordata Dataset & Web Scraper API';
 
   icon: Icon = { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' };
 
@@ -21,7 +21,7 @@ export class ThordataDatasetApi implements ICredentialType {
 
   properties: INodeProperties[] = [
     {
-      displayName: 'Dataset API Key',
+      displayName: 'API Token',
       name: 'apiKey',
       type: 'string',
       typeOptions: {
@@ -29,7 +29,7 @@ export class ThordataDatasetApi implements ICredentialType {
       },
       default: '',
       required: true,
-      description: 'Thordata Dataset API key used to list, purchase, download and deliver datasets',
+      description: 'Thordata API token for datasets and Web Scraper tasks',
     },
     {
       displayName: 'AWS Access Key ID',

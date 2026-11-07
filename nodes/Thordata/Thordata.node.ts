@@ -35,6 +35,9 @@ import {
   type ParamsJsonInput,
 } from './request';
 import { normalizeSerpResponse } from './response';
+import { WEB_SCRAPER_OPERATIONS, getWebScraperFields, getWebScraperOperations } from './web-scraper-schema-client';
+import { executeWebScraper } from './web-scraper-execute';
+import { sanitizeWebScraperError } from './web-scraper-result';
 import { DATASET_DELIVERY_TYPES, DATASET_FORMATS, DATASET_OPERATIONS, DATASET_PURCHASE_TYPES, VIDEO_DATA_CONTACT } from './dataset-delivery';
 import { assertDatasetSnapshotReady, buildDatasetRequestOptions, createDatasetIdempotencyKey, normalizeDatasetResponse } from './dataset-request';
 import { loadDatasetCatalog } from './dataset-schema-client';
@@ -54,6 +57,11 @@ const SERP_RESOURCE_MAPPER_OPTIONS: CompatibleResourceMapperOptions = {
   addAllFields: true,
   supportAutoMap: false,
   hideNoDataError: true,
+};
+
+const WEB_SCRAPER_RESOURCE_MAPPER_OPTIONS: CompatibleResourceMapperOptions = {
+  ...SERP_RESOURCE_MAPPER_OPTIONS,
+  resourceMapperMethod: 'getWebScraperParameters',
 };
 
 const VISIBLE_UULE_ENGINES = ['google_ai_mode', 'google_web', 'google_local', 'google_jobs'];
@@ -165,7 +173,7 @@ export class Thordata implements INodeType {
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"]}}',
-    description: 'Search engines and datasets with the Thordata API',
+    description: 'Search engines, datasets and web scraping with the Thordata API',
     defaults: {
       name: 'Thordata',
     },
@@ -183,7 +191,7 @@ export class Thordata implements INodeType {
       {
         name: 'thordataDatasetApi',
         required: true,
-        displayOptions: { show: { '/resource': ['dataset'] } },
+        displayOptions: { show: { '/resource': ['dataset', 'webScraper'] } },
       },
     ],
     properties: [
@@ -194,6 +202,7 @@ export class Thordata implements INodeType {
         options: [
           { name: 'SERP API', value: 'serp' },
           { name: 'Dataset', value: 'dataset' },
+          { name: 'Web Scraper', value: 'webScraper' },
         ],
         default: 'serp',
         required: true,
@@ -208,6 +217,55 @@ export class Thordata implements INodeType {
         required: true,
         noDataExpression: true,
         displayOptions: { show: { resource: ['dataset'] } },
+      },
+      {
+        displayName: 'Operation Name or ID',
+        name: 'operation',
+        type: 'options',
+        typeOptions: { loadOptionsMethod: 'getWebScraperOperations' },
+        options: WEB_SCRAPER_OPERATIONS,
+        default: 'linkedin_company_information_by-url',
+        required: true,
+        noDataExpression: true,
+        description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+        displayOptions: { show: { resource: ['webScraper'] } },
+      },
+      {
+        displayName: 'Parameters',
+        name: 'webScraperParameters',
+        type: 'resourceMapper',
+        hint: 'For YouTube keyword searches, set Number of Posts to limit the result size. Leaving it empty uses the service default.',
+        default: { mappingMode: 'defineBelow', value: null },
+        required: true,
+        noDataExpression: true,
+        displayOptions: { show: { resource: ['webScraper'] } },
+        typeOptions: {
+          loadOptionsDependsOn: ['resource', 'operation'],
+          resourceMapper: WEB_SCRAPER_RESOURCE_MAPPER_OPTIONS,
+        },
+      },
+      {
+        displayName: 'Options',
+        name: 'webScraperOptions',
+        type: 'collection',
+        default: {},
+        placeholder: 'Add Option',
+        displayOptions: { show: { resource: ['webScraper'] } },
+        options: [
+          {
+            displayName: 'File Name', name: 'fileName', type: 'string', default: '{{TasksID}}',
+            description: 'Name of the result file in the Thordata console',
+          },
+          {
+            displayName: 'Include Error Records', name: 'includeErrors', type: 'boolean', default: true,
+            description: 'Whether to include failed records in the downloaded result',
+          },
+          {
+            displayName: 'Max Wait Time (Seconds)', name: 'maxWaitSeconds', type: 'number', default: 300,
+            typeOptions: { minValue: 30, maxValue: 900, numberPrecision: 0 },
+            description: 'Total time per input item for submission, polling and JSON download. A timeout does not cancel the remote task.',
+          },
+        ],
       },
       {
         displayName: 'Contact Us',
@@ -414,6 +472,9 @@ export class Thordata implements INodeType {
 
   methods = {
     loadOptions: {
+      async getWebScraperOperations(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        return getWebScraperOperations(this);
+      },
       async getSerpOperations(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
         const schema = await serpSchemaRepository.getForEditor(
           () => this.helpers.httpRequest(buildSchemaRequestOptions()),
@@ -470,6 +531,9 @@ export class Thordata implements INodeType {
       },
     },
     resourceMapping: {
+      async getWebScraperParameters(this: ILoadOptionsFunctions): Promise<ResourceMapperFields> {
+        return getWebScraperFields(this);
+      },
       async getSerpParameters(this: ILoadOptionsFunctions): Promise<ResourceMapperFields> {
         const schema = await serpSchemaRepository.getForEditor(
           () => this.helpers.httpRequest(buildSchemaRequestOptions()),
@@ -495,6 +559,21 @@ export class Thordata implements INodeType {
     for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
       try {
         const resource = this.getNodeParameter('resource', itemIndex);
+        if (resource === 'webScraper') {
+          try {
+            const json = await executeWebScraper(this, itemIndex);
+            returnData.push({ json, pairedItem: { item: itemIndex } });
+          } catch (error) {
+            const safe = sanitizeWebScraperError(error);
+            const nodeError = new NodeOperationError(this.getNode(), safe.message, { itemIndex });
+            if (!this.continueOnFail()) throw nodeError;
+            const { message, ...details } = safe;
+            returnData.push({
+              json: { error: message, ...details }, error: nodeError, pairedItem: { item: itemIndex },
+            });
+          }
+          continue;
+        }
         if (resource === 'dataset') {
           const operation = String(this.getNodeParameter('operation', itemIndex, 'listDatasets'));
           if (operation === 'videoData') {

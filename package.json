@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-thordata",
-  "version": "0.1.6",
-  "description": "Thordata SERP API community node for n8n",
+  "version": "0.1.7",
+  "description": "Thordata SERP, Dataset and Web Scraper community node for n8n",
   "license": "MIT",
   "author": {
     "name": "Thordata",
@@ -18,6 +18,7 @@
     "n8n",
     "serp",
     "dataset",
+    "web-scraper",
     "thordata"
   ],
   "files": [
@@ -41,6 +42,7 @@
     "lint": "n8n-node lint",
     "validate:package": "node scripts/validate-package.js",
     "update:schema": "npm run build && node scripts/update-serp-snapshot.js",
+    "update:web-scraper-schema": "node scripts/update-web-scraper-snapshot.js",
     "verify": "npm run build && npm run validate:package && npm test && npm run lint",
     "prepack": "npm run verify"
   },

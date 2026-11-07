@@ -131,6 +131,8 @@ function resolveNpmCli() {
 }
 
 function validateTrackedText() {
+  // The local n8n instance is not package source; the final npm file list is still checked item by item.
+  const localInstanceDirectories = new Set(['n8n-instance', '8n-instance']);
   const trackedResult = spawnSync('git', ['ls-files', '-z'], {
     cwd: packageRoot,
     shell: false,
@@ -141,6 +143,7 @@ function validateTrackedText() {
   const trackedPaths = trackedResult.stdout.toString('utf8').split('\0').filter(Boolean);
   for (const trackedPath of trackedPaths) {
     if (trackedPath.startsWith('docs/superpowers/')) continue;
+    if (localInstanceDirectories.has(trackedPath.split('/')[0])) continue;
     const absolutePath = resolve(packageRoot, trackedPath);
     if (!existsSync(absolutePath)) continue;
     const trackedStat = lstatSync(absolutePath);
@@ -177,6 +180,12 @@ const expectedDistFiles = [
   'dist/nodes/Thordata/dataset-request.js',
   'dist/nodes/Thordata/dataset-schema-client.js',
   'dist/nodes/Thordata/dataset-schema.js',
+  'dist/nodes/Thordata/web-scraper-schema.js',
+  'dist/nodes/Thordata/web-scraper-schema-client.js',
+  'dist/nodes/Thordata/web-scraper-schema.snapshot.json',
+  'dist/nodes/Thordata/web-scraper-request.js',
+  'dist/nodes/Thordata/web-scraper-result.js',
+  'dist/nodes/Thordata/web-scraper-execute.js',
 ].sort();
 const expectedRegistration = {
   n8nNodesApiVersion: 1,
@@ -190,8 +199,8 @@ const packageJson = readJson('package.json');
 
 assert(packageJson.name === 'n8n-nodes-thordata', 'Unexpected package name');
 assert(/^\d+\.\d+\.\d+$/.test(packageJson.version), 'Package version must be valid semver');
-assert(packageJson.version === '0.1.6', 'Unexpected package version');
-assert(packageJson.description === 'Thordata SERP API community node for n8n', 'Unexpected package description');
+assert(packageJson.version === '0.1.7', 'Unexpected package version');
+assert(packageJson.description === 'Thordata SERP, Dataset and Web Scraper community node for n8n', 'Unexpected package description');
 assert(packageJson.license === 'MIT', 'Package license must be MIT');
 assert(packageJson.author?.name === 'Thordata', 'Unexpected package author');
 assert(packageJson.homepage === 'https://www.thordata.com', 'Unexpected package homepage');
@@ -270,7 +279,11 @@ assert(
 
 // n8n review rule: the package must not be able to point at an arbitrary host. Both Thordata
 // service URLs are compile-time constants, so no credential may declare a URL-shaped field.
-const { THORDATA_DATASET_API_BASE_URL, THORDATA_SERP_ENDPOINT } = require(
+const {
+  THORDATA_DATASET_API_BASE_URL, THORDATA_SERP_ENDPOINT,
+  THORDATA_WEB_SCRAPER_SCHEMA_BASE_URL, THORDATA_WEB_SCRAPER_BUILDER_URL,
+  THORDATA_WEB_SCRAPER_TASK_API_BASE_URL, THORDATA_WEB_SCRAPER_DOWNLOAD_URL,
+} = require(
   resolve(packageRoot, 'dist/endpoints.js'),
 );
 assert(
@@ -281,6 +294,27 @@ assert(
   THORDATA_DATASET_API_BASE_URL === 'https://api.thordata.com/api/n8n',
   'Unexpected Dataset API base URL constant',
 );
+
+deepStrictEqual(
+  [THORDATA_WEB_SCRAPER_SCHEMA_BASE_URL, THORDATA_WEB_SCRAPER_BUILDER_URL,
+    THORDATA_WEB_SCRAPER_TASK_API_BASE_URL, THORDATA_WEB_SCRAPER_DOWNLOAD_URL],
+  ['https://api.thordata.com/web-scraper/schema', 'https://scraperapi.thordata.com/builder',
+    'https://api.thordata.com/api/web-scraper-api', 'https://scraperapi.thordata.com/download'],
+  'Web Scraper endpoints must use the package environment',
+);
+const webScraperSnapshot = readJson('dist/nodes/Thordata/web-scraper-schema.snapshot.json');
+const { normalizeWebScraperOperations, normalizeWebScraperSchema, WEB_SCRAPER_PRODUCTS } = require(
+  resolve(packageRoot, 'dist/nodes/Thordata/web-scraper-schema.js'),
+);
+deepStrictEqual(
+  normalizeWebScraperOperations(webScraperSnapshot.operations).map(({ value }) => value),
+  WEB_SCRAPER_PRODUCTS.map(({ id }) => id),
+  'Bundled Web Scraper catalog must contain all seven supported actions',
+);
+deepStrictEqual(Object.keys(webScraperSnapshot.parameters).sort(), WEB_SCRAPER_PRODUCTS.map(({ id }) => id).sort());
+for (const product of WEB_SCRAPER_PRODUCTS) {
+  normalizeWebScraperSchema(webScraperSnapshot.parameters[product.id], product.id);
+}
 
 const auxiliaryCredentialPaths = [
   'credentials/ThordataDatasetApi.credentials.ts',
@@ -348,7 +382,7 @@ deepStrictEqual(
 const expectedAuxiliaryCredentials = {
   'dist/credentials/ThordataDatasetApi.credentials.js': {
     name: 'thordataDatasetApi',
-    displayName: 'Thordata Dataset API',
+    displayName: 'Thordata Dataset & Web Scraper API',
     properties: ['apiKey', 'accessKeyId', 'secretAccessKey', 'password'],
     requiredFields: ['apiKey'],
     secretFields: ['apiKey', 'secretAccessKey', 'password'],
@@ -507,7 +541,7 @@ deepStrictEqual(
     icon: { light: 'file:thordata.svg', dark: 'file:thordata.dark.svg' },
     group: ['transform'],
     version: 1,
-    description: 'Search engines and datasets with the Thordata API',
+    description: 'Search engines, datasets and web scraping with the Thordata API',
     defaults: { name: 'Thordata' },
     inputs: ['main'],
     outputs: ['main'],
@@ -521,7 +555,7 @@ deepStrictEqual(
       {
         name: 'thordataDatasetApi',
         required: true,
-        displayOptions: { show: { '/resource': ['dataset'] } },
+        displayOptions: { show: { '/resource': ['dataset', 'webScraper'] } },
       },
     ],
   },
@@ -545,7 +579,7 @@ deepStrictEqual(
 deepStrictEqual(
   nodeDescription.properties.map(({ name }) => name),
   [
-    'resource', 'operation', 'videoDataContact', 'purchaseType', 'datasetId', 'recordsLimit', 'packageId',
+    'resource', 'operation', 'operation', 'webScraperParameters', 'webScraperOptions', 'videoDataContact', 'purchaseType', 'datasetId', 'recordsLimit', 'packageId',
     'deliveryId', 'format', 'downloadMode', 'deliveryType', 'bucket',
     'region', 'targetPath', 'accountIdentifier', 'database', 'role', 'snowflakeUser',
     'schemaName', 'stage', 'warehouse', 'fileName', 'operation', 'parameters',
@@ -554,6 +588,10 @@ deepStrictEqual(
   'Unexpected top-level node properties',
 );
 const resourceProperty = nodeDescription.properties.find(({ name }) => name === 'resource');
+const webScraperOperationProperty = nodeDescription.properties.find(({ name, displayOptions }) => name === 'operation' && displayOptions?.show?.resource?.includes('webScraper'));
+deepStrictEqual(webScraperOperationProperty?.options?.map(({ value }) => value), WEB_SCRAPER_PRODUCTS.map(({ id }) => id));
+assert(typeof node.methods?.loadOptions?.getWebScraperOperations === 'function', 'Missing Web Scraper operation loader');
+assert(typeof node.methods?.resourceMapping?.getWebScraperParameters === 'function', 'Missing Web Scraper mapper');
 const operationProperty = nodeDescription.properties.find(({ name, typeOptions }) => name === 'operation' && typeOptions?.loadOptionsMethod === 'getSerpOperations');
 const parametersProperty = nodeDescription.properties.find(({ name }) => name === 'parameters');
 const encodedLocationProperty = nodeDescription.properties.find(({ name }) => name === 'encodedLocationValue');
@@ -567,7 +605,7 @@ deepStrictEqual(
     displayName: 'Resource',
     name: 'resource',
     type: 'options',
-    options: [{ name: 'SERP API', value: 'serp' }, { name: 'Dataset', value: 'dataset' }],
+    options: [{ name: 'SERP API', value: 'serp' }, { name: 'Dataset', value: 'dataset' }, { name: 'Web Scraper', value: 'webScraper' }],
     default: 'serp',
     required: true,
     noDataExpression: true,
@@ -767,7 +805,7 @@ for (const [label, source] of [
   ['compiled node', compiledNodeSource],
   ['compiled node description', serializedDescription],
 ]) {
-  assert(!/web.?scraper|coming\s*soon/i.test(source), `${label} must not contain Web Scraper placeholders`);
+  assert(!/coming\s*soon/i.test(source), `${label} must not contain placeholders`);
 }
 assert(!/"disabled"/i.test(serializedDescription), 'Compiled node description must not contain disabled resources');
 for (const [label, endpoint] of [

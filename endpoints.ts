@@ -3,3 +3,7 @@
 // generic proxy that can be pointed at arbitrary hosts.
 export const THORDATA_SERP_ENDPOINT = 'https://scraperapi.thordata.com/request';
 export const THORDATA_DATASET_API_BASE_URL = 'https://api.thordata.com/api/n8n';
+export const THORDATA_WEB_SCRAPER_SCHEMA_BASE_URL = 'https://api.thordata.com/web-scraper/schema';
+export const THORDATA_WEB_SCRAPER_BUILDER_URL = 'https://scraperapi.thordata.com/builder';
+export const THORDATA_WEB_SCRAPER_TASK_API_BASE_URL = 'https://api.thordata.com/api/web-scraper-api';
+export const THORDATA_WEB_SCRAPER_DOWNLOAD_URL = 'https://scraperapi.thordata.com/download';

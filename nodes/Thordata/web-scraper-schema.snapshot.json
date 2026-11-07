@@ -1,0 +1,380 @@
+{
+  "operations": {
+    "code": 0,
+    "data": {
+      "schema_version": "1",
+      "resource": "web_scraper",
+      "operations": [
+        {
+          "value": "amazon_product_by-category-url",
+          "name": "Category URL",
+          "spider_id": "amazon_product_by-category-url",
+          "spider_name": "amazon.com",
+          "scraper_id": 3,
+          "product_id": 353,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "twitter_profile_by-profileurl",
+          "name": "Profile URL",
+          "spider_id": "twitter_profile_by-profileurl",
+          "spider_name": "x.com",
+          "scraper_id": 433,
+          "product_id": 12871667,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "linkedin_company_information_by-url",
+          "name": "URL",
+          "spider_id": "linkedin_company_information_by-url",
+          "spider_name": "linkedin.com",
+          "scraper_id": 451,
+          "product_id": 492,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "linkedin_job_listings_information_by-job-url",
+          "name": "Job URL",
+          "spider_id": "linkedin_job_listings_information_by-job-url",
+          "spider_name": "linkedin.com",
+          "scraper_id": 452,
+          "product_id": 497,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "youtube_video-post_by-keyword",
+          "name": "Keyword",
+          "spider_id": "youtube_video-post_by-keyword",
+          "spider_name": "youtube.com",
+          "scraper_id": 20866874,
+          "product_id": 22803960,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "youtube_video-post_by-explore",
+          "name": "Explore",
+          "spider_id": "youtube_video-post_by-explore",
+          "spider_name": "youtube.com",
+          "scraper_id": 20866874,
+          "product_id": 56586928,
+          "product_type": "text",
+          "execution_path": "/builder"
+        },
+        {
+          "value": "facebook_profile_by-profiles-url",
+          "name": "Profile URL",
+          "spider_id": "facebook_profile_by-profiles-url",
+          "spider_name": "facebook.com",
+          "scraper_id": 45577691,
+          "product_id": 55299282,
+          "product_type": "text",
+          "execution_path": "/builder"
+        }
+      ]
+    }
+  },
+  "parameters": {
+    "linkedin_company_information_by-url": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "linkedin_company_information_by-url",
+        "spider_name": "linkedin.com",
+        "scraper_id": 451,
+        "product_id": 492,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "url",
+            "label": "Company URL",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "url",
+            "description": "This parameter specifies the company URLs to scrape.",
+            "options": [],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    },
+    "linkedin_job_listings_information_by-job-url": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "linkedin_job_listings_information_by-job-url",
+        "spider_name": "linkedin.com",
+        "scraper_id": 452,
+        "product_id": 497,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "job_url",
+            "label": "Job URL",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "job_url",
+            "description": "This parameter specifies the job URLs to scrapel.",
+            "options": [],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    },
+    "youtube_video-post_by-keyword": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "youtube_video-post_by-keyword",
+        "spider_name": "youtube.com",
+        "scraper_id": 20866874,
+        "product_id": 22803960,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "keyword",
+            "label": "Keyword",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "keyword",
+            "description": "This parameter is used to specify keywords.",
+            "options": [],
+            "operators": []
+          },
+          {
+            "key": "num_of_posts",
+            "label": "Number of posts",
+            "type": "string",
+            "control": "input",
+            "required": false,
+            "default_value": null,
+            "placeholder": "num_of_posts",
+            "description": "This parameter is used to specify the number of posts to crawl. If not specified, a maximum of 10w posts will be retrieved by default.",
+            "options": [],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": [
+          {
+            "key": "num_of_posts",
+            "message": "invalid string default"
+          }
+        ]
+      }
+    },
+    "facebook_profile_by-profiles-url": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "facebook_profile_by-profiles-url",
+        "spider_name": "facebook.com",
+        "scraper_id": 45577691,
+        "product_id": 55299282,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "url",
+            "label": "Profile URL",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "url",
+            "description": "This parameter is used to specify the Profile URL to be scraped",
+            "options": [],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    },
+    "youtube_video-post_by-explore": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "youtube_video-post_by-explore",
+        "spider_name": "youtube.com",
+        "scraper_id": 20866874,
+        "product_id": 56586928,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "url",
+            "label": "URL",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "url",
+            "description": "This parameter is used to specify the URL to crawl.",
+            "options": [],
+            "operators": []
+          },
+          {
+            "key": "all_tabs",
+            "label": "All Tabs",
+            "type": "options",
+            "control": "select",
+            "required": false,
+            "default_value": null,
+            "placeholder": "all_tabs",
+            "description": "This parameter is used to specify whether to collect all tabs.",
+            "options": [
+              {
+                "label": "true",
+                "value": "true"
+              },
+              {
+                "label": "flase",
+                "value": "flase"
+              }
+            ],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    },
+    "twitter_profile_by-profileurl": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "twitter_profile_by-profileurl",
+        "spider_name": "x.com",
+        "scraper_id": 433,
+        "product_id": 12871667,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "url",
+            "label": "Twitter Profile URL",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "url",
+            "description": "This parameter is used to specify the URL of the Twitter profile to scrape.",
+            "options": [],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    },
+    "amazon_product_by-category-url": {
+      "code": 0,
+      "data": {
+        "schema_version": "1",
+        "resource": "web_scraper",
+        "spider_id": "amazon_product_by-category-url",
+        "spider_name": "amazon.com",
+        "scraper_id": 3,
+        "product_id": 353,
+        "product_type": "text",
+        "execution_path": "/builder",
+        "parameters": [
+          {
+            "key": "url",
+            "label": "URLs",
+            "type": "string",
+            "control": "input",
+            "required": true,
+            "default_value": null,
+            "placeholder": "url",
+            "description": "Target URL to be scraped",
+            "options": [],
+            "operators": []
+          },
+          {
+            "key": "page_turning",
+            "label": "Pages to Search back",
+            "type": "number",
+            "control": "number",
+            "required": true,
+            "default_value": null,
+            "placeholder": "page_turning",
+            "description": "Please enter how many pages of products to scrape. For example, if you enter 2, the tool will scrape all products from both page 1 and page 2 of the search results.",
+            "options": [],
+            "operators": []
+          },
+          {
+            "key": "sort_by",
+            "label": "Sort Order",
+            "type": "options",
+            "control": "select",
+            "required": false,
+            "default_value": "Best Sellers",
+            "placeholder": "sort_by",
+            "description": "Choose how to sort the category page: best sellers,newest arrivals,customer reviews,price,or featured",
+            "options": [
+              {
+                "label": "Best Sellers",
+                "value": "Best Sellers"
+              },
+              {
+                "label": "Newest Arrivals",
+                "value": "Newest Arrivals"
+              },
+              {
+                "label": "Avg. Customer Review",
+                "value": "Avg. Customer Review"
+              },
+              {
+                "label": "Price: High to Low",
+                "value": "Price: High to Low"
+              },
+              {
+                "label": "Price: Low to High",
+                "value": "Price: Low to High"
+              },
+              {
+                "label": "Featured",
+                "value": "Featured"
+              }
+            ],
+            "operators": []
+          }
+        ],
+        "general_parameters": [],
+        "validation_rules": [],
+        "warnings": []
+      }
+    }
+  }
+}

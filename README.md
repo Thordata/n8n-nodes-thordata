@@ -9,16 +9,21 @@
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-`n8n-nodes-thordata` **v0.1.6** is an n8n SERP API community node for Thordata. This release does not expose Web Scraper; Dataset ships alongside it, so existing `resource=serp` workflows keep working unchanged. A later version may add another resource without changing existing `resource=serp` workflows.
+This source adds seven Web Scraper actions alongside SERP API and Dataset. Existing workflows and saved credential identifiers remain compatible. Version **0.1.7** is the first release that ships these Web Scraper actions; the published 0.1.6 package does not contain the Web Scraper resource.
+## Turn web data into workflow value
+
+Stop stitching together fragile scrapers, rotating proxies, and custom parsers. With Thordata inside n8n, your team can move from a business question to a reliable automation in minutes: discover the data you need, enrich it in a workflow, and send the result to the systems where decisions happen.
+
+Whether you are monitoring competitors, refreshing product intelligence, researching leads, or powering an AI workflow, the same node gives you a clean path from live search results and ready-to-use datasets to an action your business can run repeatedly.
 
 ## Why teams build with Thordata + n8n
 
-- **30+ search engines, one node** — Google, Bing, Yandex and DuckDuckGo, plus sub-engines like Images, News, Maps, Shopping, Jobs and Scholar.
-- **Structured datasets on demand** — browse the catalog, purchase a one-time snapshot or a wallet subscription, then download or deliver the results as JSON-safe data for the next step.
-- **Take data wherever you work** — return download links, pull files as n8n binary data, or deliver results directly to Amazon S3 or Snowflake.
-- **Always current** — engines, fields and datasets are loaded dynamically from Thordata, so the catalog stays fresh without a node update.
-- **Automation-native** — works as a regular node or as an AI Agent tool, with n8n's Continue-on-Fail for resilient runs.
-- **Lightweight and private** — zero runtime dependencies; your API key is sent per request and is never logged or bundled.
+- **30+ search engines, one node** —Google, Bing, Yandex and DuckDuckGo, plus sub-engines like Images, News, Maps, Shopping, Jobs and Scholar.
+- **Structured datasets on demand** —browse the catalog, purchase a one-time snapshot or a wallet subscription, then download or deliver the results as JSON-safe data for the next step.
+- **Take data wherever you work** —return download links, pull files as n8n binary data, or deliver results directly to Amazon S3 or Snowflake.
+- **Always current** —engines, fields and datasets are loaded dynamically from Thordata, so the catalog stays fresh without a node update.
+- **Automation-native** —works as a regular node or as an AI Agent tool, with n8n's Continue-on-Fail for resilient runs.
+- **Lightweight and private** —zero runtime dependencies; your API key is sent per request and is never logged or bundled.
 
 ## Contents
 
@@ -28,6 +33,7 @@
 - [Choose a resource](#choose-a-resource)
 - [Use the SERP API resource](#use-the-serp-api-resource)
 - [Use the Dataset resource](#use-the-dataset-resource)
+- [Use the Web Scraper resource](#use-the-web-scraper-resource)
 - [Output and errors](#output-and-errors)
 - [Schema reliability](#schema-reliability)
 - [Privacy and security](#privacy-and-security)
@@ -65,21 +71,22 @@ See n8n's [community-node installation and management guide](https://docs.n8n.io
 
 ## Credentials
 
-SERP and Dataset API keys use separate credentials. Dataset delivery secrets are stored in the Dataset API credential. The node only shows the credential that matches the **Resource** you selected.
+SERP uses its own credential. Dataset and Web Scraper share the existing Dataset credential. Dataset delivery secrets are stored in the Dataset API credential. The node only shows the credential that matches the **Resource** you selected.
 
 | Resource | Credential | Field | Notes |
 |---|---|---|---|
 | SERP API | **Thordata SERP API** | **API Key** | Required password field, secret. Sent as `Authorization: Bearer <key>`. |
-| Dataset | **Thordata Dataset API** | **Dataset API Key** | Required password field, secret. Sent as `Authorization: Bearer <key>`. |
+| Dataset | **Thordata Dataset & Web Scraper API** | **API Token** | Required secret; sent as `Authorization: Bearer <token>`. |
+| Web Scraper | **Thordata Dataset & Web Scraper API** | **API Token** | Same saved token; Bearer for submission and `sign` for task status/download lookup. |
 
-**These keys are not interchangeable.** The Dataset API rejects a SERP key, so if you use the Dataset resource, paste the key from the dataset section of the Thordata console into **Thordata Dataset API**. The SERP endpoint accepts either key, so the SERP resource keeps working with a key you already have.
+**These keys are not interchangeable.** The Dataset API rejects a SERP key, so if you use the Dataset resource, paste the key from the dataset section of the Thordata console into **Thordata Dataset & Web Scraper API**. The SERP endpoint accepts either key, so the SERP resource keeps working with a key you already have.
 
 Select **Test** on either credential to validate it:
 
 - **Thordata SERP API** sends one minimal SERP request (`engine=google&q=thordata`) to `https://scraperapi.thordata.com/request`, so **a successful test consumes one credit**.
-- **Thordata Dataset API** lists the dataset catalog at `https://api.thordata.com/api/n8n/datasets` and does not consume credits.
+- **Thordata Dataset & Web Scraper API** lists the dataset catalog at `https://api.thordata.com/api/n8n/datasets` and does not consume credits.
 
-Both service URLs the node uses are fixed in the node code and can't be edited, so a credential only ever holds your key and never decides where a request goes:
+The service URLs the node uses are fixed in the node code and can't be edited, so a credential only ever holds your key and never decides where a request goes:
 
 | Service | URL |
 |---|---|
@@ -90,19 +97,20 @@ Both service URLs the node uses are fixed in the node code and can't be edited, 
 
 | Destination | Credential | Fields |
 |---|---|---|
-| Amazon S3 | **Thordata Dataset API** | **AWS Access Key ID** (visible), **AWS Secret Access Key** (secret, masked) |
-| Snowflake | **Thordata Dataset API** | **Snowflake Password** (secret, masked) |
+| Amazon S3 | **Thordata Dataset & Web Scraper API** | **AWS Access Key ID** (visible), **AWS Secret Access Key** (secret, masked) |
+| Snowflake | **Thordata Dataset & Web Scraper API** | **Snowflake Password** (secret, masked) |
 
-The three destination fields are optional in the credential. Fill in the AWS fields only when delivering to Amazon S3, or fill in **Snowflake Password** only when delivering to Snowflake. Everything else about the destination — bucket, region, target path, file name, account, database, schema, role, user, stage, warehouse — stays on the node. Create the credential once and reuse it across workflows; per-destination values stay visible and auditable in the node itself.
+The three destination fields are optional in the credential. Fill in the AWS fields only when delivering to Amazon S3, or fill in **Snowflake Password** only when delivering to Snowflake. Everything else about the destination —bucket, region, target path, file name, account, database, schema, role, user, stage, warehouse —stays on the node. Create the credential once and reuse it across workflows; per-destination values stay visible and auditable in the node itself.
 
-The **Thordata Dataset API** credential also stores the destination secrets needed by **Deliver Dataset**. The node continues to show the same S3/Snowflake destination fields.
+The **Thordata Dataset & Web Scraper API** credential also stores the destination secrets needed by **Deliver Dataset**. The node continues to show the same S3/Snowflake destination fields.
 
 ## Choose a resource
 
 Add the **Thordata** node to a workflow, then select a **Resource**:
 
-- **SERP API** — query search engines (Google, Bing, Yandex, DuckDuckGo and their sub-engines).
-- **Dataset** — list, purchase, download, or deliver Thordata datasets.
+- **SERP API** —query search engines (Google, Bing, Yandex, DuckDuckGo and their sub-engines).
+- **Dataset** —list, purchase, download, or deliver Thordata datasets.
+- **Web Scraper** —run one of seven supported scrapers and wait for its final JSON result.
 
 The node's fields and parameters are driven by Thordata, so the engine and dataset catalogs stay current without a node upgrade.
 
@@ -114,9 +122,9 @@ The node's fields and parameters are driven by Thordata, so the engine and datas
 4. For engines that support **Encoded Location (UULE)**, a read-only field shows the value derived from `location`.
 5. Expand **Options** to add **Extra Parameters JSON** as a JSON object when you need a field that is not exposed as a form input.
 
-**How request values are applied** (in order): visible defaults → mapped values → Extra JSON → protected controls. Extra JSON may add or override most fields and hidden fields, but it can never override `engine` or `isjson`. The node sends `isjson=1`, and `json` defaults to `'1'` when absent. Country-restriction (`cr`) values accept country codes.
+**How request values are applied** (in order): visible defaults →mapped values →Extra JSON →protected controls. Extra JSON may add or override most fields and hidden fields, but it can never override `engine` or `isjson`. The node sends `isjson=1`, and `json` defaults to `'1'` when absent. Country-restriction (`cr`) values accept country codes.
 
-**Example** — `Resource = SERP API`, `Operation = google`, Parameters `{ "q": "n8n", "gl": "us", "hl": "en" }`. Output item:
+**Example** —`Resource = SERP API`, `Operation = google`, Parameters `{ "q": "n8n", "gl": "us", "hl": "en" }`. Output item:
 
 ```json
 {
@@ -144,11 +152,11 @@ The node's fields and parameters are driven by Thordata, so the engine and datas
 
 3. Fill the fields for the chosen operation (`Dataset`, `Purchase Type`, `Package`, `Records`, `Format`, `Download Mode`, `Delivery ID`, and the delivery fields).
 
-### Purchase → Download (typical chain)
+### Purchase →Download (typical chain)
 
-A newly created snapshot may still be packing. Run **Purchase Dataset** first, then chain **Download Dataset** or **Deliver Dataset**. If the snapshot is not ready yet, the node reports `Dataset is still being prepared. Please try again later.` — simply re-run the downstream node, or insert an n8n Wait/Retry between the two.
+A newly created snapshot may still be packing. Run **Purchase Dataset** first, then chain **Download Dataset** or **Deliver Dataset**. If the snapshot is not ready yet, the node reports `Dataset is still being prepared. Please try again later.` —simply re-run the downstream node, or insert an n8n Wait/Retry between the two.
 
-**Delivery ID** accepts the delivery ID the Thordata console lists for the dataset, or a snapshot ID. Left empty, the node reads it from the previous item (Purchase Dataset returns it as `delivery_id`), so a Purchase → Download chain needs no copying.
+**Delivery ID** accepts the delivery ID the Thordata console lists for the dataset, or a snapshot ID. Left empty, the node reads it from the previous item (Purchase Dataset returns it as `delivery_id`), so a Purchase →Download chain needs no copying.
 
 ```
 [ Purchase Dataset (One-time Snapshot) ]  ->  [ Download Dataset (links) ]  ->  [ ... ]
@@ -162,14 +170,14 @@ A newly created snapshot may still be packing. Run **Purchase Dataset** first, t
 
 **Deliver Dataset** supports two destinations:
 
-- **Amazon S3** — `Bucket`, `Region`, `Target Path`, `File Name` on the node, plus the **AWS Access Key ID** and **AWS Secret Access Key** in the **Thordata Dataset API** credential.
-- **Snowflake** — `Account Identifier`, `Database`, `Schema`, `Role`, `User`, `Stage`, `Warehouse`, `File Name` on the node, plus the **Snowflake Password** in the **Thordata Dataset API** credential.
+- **Amazon S3** —`Bucket`, `Region`, `Target Path`, `File Name` on the node, plus the **AWS Access Key ID** and **AWS Secret Access Key** in the **Thordata Dataset & Web Scraper API** credential.
+- **Snowflake** —`Account Identifier`, `Database`, `Schema`, `Role`, `User`, `Stage`, `Warehouse`, `File Name` on the node, plus the **Snowflake Password** in the **Thordata Dataset & Web Scraper API** credential.
 
 Available formats: `csv`, `json`, `ndjson`, and their `.gz` variants (default `csv.gz`).
 
 ### Delivery runs asynchronously
 
-**Deliver Dataset** returns as soon as the delivery is accepted, without waiting for the upload to finish — a successful node run means the delivery was *accepted*, not that the files have arrived:
+**Deliver Dataset** returns as soon as the delivery is accepted, without waiting for the upload to finish —a successful node run means the delivery was *accepted*, not that the files have arrived:
 
 ```json
 {
@@ -188,11 +196,53 @@ Thordata then uploads the files in the background: `status` moves to `delivering
 
 Subscription pause, resume, cancel, recovery payments, and run history are managed in the Thordata console.
 
-**Example** — `List Datasets` output (abridged):
+**Example** —`List Datasets` output (abridged):
 
 ```json
 { "data": [ { "dataset_id": "3", "name": "Products" } ] }
 ```
+
+## Use the Web Scraper resource
+
+Choose **Resource = Web Scraper**, select an action and fill **Parameters**. Parameters load from the public schema; the supported action list remains limited to these seven operations.
+
+Action names follow the Thordata scraper store: the scraper product name, then the scraping method it runs. Six scraper products cover the seven actions, because YouTube Video Post runs Keyword and Explore as two methods.
+
+| Action | Required parameters | Optional parameters |
+|---|---|---|
+| LinkedIn Company Information Scraper: URL | `url` | —|
+| LinkedIn Job Listing Scraper: Job URL | `job_url` | —|
+| YouTube Video Post Scraper: Keyword | `keyword` | `num_of_posts` |
+| YouTube Video Post Scraper: Explore | `url` | `all_tabs` |
+| Facebook Profile Scraper: Profile URL | `url` | —|
+| Twitter(X) Profile Scraper: Profile URL | `url` | —|
+| Amazon Product Details Scraper: Category URL | `url`, `page_turning` | `sort_by` |
+
+Reuse your saved **Thordata Dataset & Web Scraper API** credential. No second token is required. Its credential test still reads the Dataset catalog; it does not check Web Scraper credits or task service availability.
+
+The node submits one task per input item, polls it, downloads JSON internally and returns one output item. Use n8n Split Out on `result` to process each record separately:
+
+```json
+{
+  "spider_id": "linkedin_company_information_by-url",
+  "task_id": "example-task",
+  "status": "completed",
+  "record_count": 1,
+  "result": [{ "name": "Example Company" }]
+}
+```
+
+**Options** include **Max Wait Time (Seconds)** (default 300, range 30–900), **Include Error Records** (default true), and **File Name** (default `{{TasksID}}`). Waiting ends as soon as results arrive. The time budget covers submission, polling and JSON download after parameter validation; each input item has its own budget and items run sequentially. Your workflow's timeout can stop execution earlier.
+
+A timeout stops waiting but leaves the remote task running. The error retains `task_id`; find that task in the Thordata console. Retrying the entire node creates a new task and can incur another charge. Submission failures or uncertain network outcomes are not automatically resubmitted.
+
+Returned `status` can be `completed`, `partial` (mixed records, with `error_record_count`), or `empty`. All explicit error records fail the node. Continue On Fail produces a safe error item containing `error`, `error_code`, `stage`, `spider_id` and the available `task_id`.
+
+Set `num_of_posts` explicitly to keep YouTube Keyword output bounded; omitting it uses the upstream default. Parameters and enum values follow the schema. The current upstream Explore enum includes the spelling `flase`; it is passed through rather than silently changed. Amazon category input uses `url`, not `category_url`.
+
+The public schema is refreshed for the editor and cached for execution for five minutes. Temporary schema service failures can use the last valid definition or the environment's bundled snapshot. Explicit removal and incompatible schemas fail rather than silently using an old definition.
+
+Web Scraper uses fixed `https://scraperapi.thordata.com/builder`, `https://api.thordata.com/api/web-scraper-api`, `https://api.thordata.com/web-scraper/schema` and `https://scraperapi.thordata.com/download` endpoints. The same token is passed as a `sign` header when checking status or obtaining the download URL. File download URLs containing credentials stay inside the node.
 
 ## Output and errors
 
@@ -204,24 +254,32 @@ The schema is fetched from a fixed public URL, so editor loads are fresh; execut
 
 ## Privacy and security
 
-- Each API key is only used as a `Bearer` token in request headers for its own service; no key is written to logs or bundled files.
+- Credentials are sent only to the fixed service endpoints. Web Scraper uses Bearer or `sign` headers according to the endpoint; legacy JSON download URLs can contain the token and are kept internal, never returned in output or error details.
 - **Deliver Dataset** secrets (AWS keys, Snowflake password) are stored in n8n's credential store and read at execution time. They never appear in the workflow JSON, so sharing or exporting a workflow can't leak them.
-- No request URL is configurable: the node always calls `https://scraperapi.thordata.com/request` and `https://api.thordata.com/api/n8n`, so it can't be pointed at another host.
+- Service URLs are fixed in code. Web Scraper download URLs must match the configured environment's download endpoint and task ID.
 - The node has **no runtime dependencies** and publishes only its compiled files, so its footprint is small and auditable.
 
 ## Troubleshooting
 
 - **The Dataset list is empty or fails to load.** Confirm that your account has dataset access.
-- **`Dataset is still being prepared.`** The snapshot is still packing — re-run the Download/Deliver node after a short wait, or add an n8n Wait/Retry.
+- **`Dataset is still being prepared.`** The snapshot is still packing —re-run the Download/Deliver node after a short wait, or add an n8n Wait/Retry.
 - **`Wallet balance is insufficient` (402).** Add credits to your Thordata wallet before purchasing.
 - **Test credential fails.** Check the API key and that `https://scraperapi.thordata.com/request` is reachable; note that a successful test consumes one credit.
-- **Deliver Dataset asks for a credential.** Select or create the **Thordata Dataset API** credential.
+- **Deliver Dataset asks for a credential.** Select or create the **Thordata Dataset & Web Scraper API** credential.
 
+## Built for teams that move fast
+
+Thordata + n8n gives operators and developers a practical way to turn web data into repeatable processes:
+
+- **Launch faster:** start with a ready-made dataset or a live SERP request instead of building an ingestion pipeline from scratch.
+- **Scale with confidence:** keep data collection, transformation, routing, and delivery in one visual workflow.
+- **Keep your stack flexible:** send results to downstream n8n nodes, Amazon S3, Snowflake, or AI-powered steps as your use case evolves.
+- **Make every run actionable:** use structured outputs that are easy to filter, enrich, notify on, or store.
 ## Get started in minutes
 
 1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github01&lk=github01).
 2. **Install the node** in self-hosted n8n (see [Installation](#installation)).
-3. **Build your first workflow** — add the Thordata node, pick *SERP API* or *Dataset*, and pull live search results or a structured dataset in a couple of clicks.
+3. **Build your first workflow** —add the Thordata node, pick *SERP API* or *Dataset*, and pull live search results or a structured dataset in a couple of clicks.
 
 Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github01&lk=github01)**
 
@@ -229,12 +287,14 @@ Ready to put web data on autopilot? **[Get your API key →](https://www.thordat
 
 Prefer a different surface? Thordata ships the same SERP and dataset capabilities across your stack:
 
-- **Thordata MCP Server** — give MCP-compatible AI agents live search, history and statistics. See the [Thordata documentation](https://doc.thordata.com).
-- **SERP API & SDKs** — call Thordata directly from your application. See [doc.thordata.com](https://doc.thordata.com) for guides and references.
+- **Thordata MCP Server** —give MCP-compatible AI agents live search, history and statistics. See the [Thordata documentation](https://doc.thordata.com).
+- **SERP API & SDKs** —call Thordata directly from your application. See [doc.thordata.com](https://doc.thordata.com) for guides and references.
 
 ## Development checks
 
 `npm run verify` runs the build, package validation, unit tests, and the official `n8n-node lint`. The individual checks are available as `npm run build`, `npm run validate:package`, `npm test`, and `npm run lint`.
+
+Refresh each environment's seven Web Scraper schemas with `npm run update:web-scraper-schema`. Sync code with `node scripts/sync-test-variant.mjs`, then refresh the test package's snapshot separately and run `npm run verify` there. The sync script preserves the test snapshot and local n8n instance data.
 
 The Dataset API credential test lists the catalog. The S3 and Snowflake destination secrets are forwarded to Thordata only when a delivery runs; the catalog test does not validate destination credentials.
 
@@ -243,3 +303,6 @@ The Dataset API credential test lists the catalog. The S3 and Snowflake destinat
 - **Documentation:** [doc.thordata.com](https://doc.thordata.com) · **Contact:** support@thordata.com
 - **Feedback:** open an issue on this repository.
 - **License:** MIT License. See [LICENSE](LICENSE).
+
+
+
