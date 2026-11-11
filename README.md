@@ -2,14 +2,14 @@
 
 > **Turn real-time search results and ready-made web datasets into n8n automations.**
 >
-> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/?ls=github01&lk=github01) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
+> `n8n-nodes-thordata` connects [Thordata](https://www.thordata.com/products/serp-api/n8n-integration?op=flora&from=github) — the SERP API and structured-dataset platform for web data — to [n8n](https://n8n.io). Query search engines and buy, download, or deliver production-grade datasets straight from a workflow, with **no scraping code, no proxy management, and no HTML parsing**.
 
 <p>
   <img alt="version" src="https://img.shields.io/npm/v/n8n-nodes-thordata">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-This source adds seven Web Scraper actions alongside SERP API and Dataset. Existing workflows and saved credential identifiers remain compatible. Version **0.1.8** ships these Web Scraper actions; the published 0.1.6 package does not contain the Web Scraper resource.
+This source adds seven Web Scraper actions alongside SERP API and Dataset. Existing workflows and saved credential identifiers remain compatible. Version **0.1.9** ships these Web Scraper actions; the published 0.1.6 package does not contain the Web Scraper resource.
 ## Turn web data into workflow value
 
 Stop stitching together fragile scrapers, rotating proxies, and custom parsers. With Thordata inside n8n, your team can move from a business question to a reliable automation in minutes: discover the data you need, enrich it in a workflow, and send the result to the systems where decisions happen.
@@ -45,7 +45,7 @@ Whether you are monitoring competitors, refreshing product intelligence, researc
 ## Requirements
 
 - Self-hosted n8n with community nodes enabled.
-- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=github01&lk=github01).
+- A Thordata account with an **API key** and available credits. Find your key in the Thordata console at [www.thordata.com](https://www.thordata.com/?ls=github&lk=flora-thordata).
 
 This is an **unverified community node**, so unverified community nodes are not available on n8n Cloud; install it on self-hosted n8n only.
 
@@ -279,11 +279,11 @@ Thordata + n8n gives operators and developers a practical way to turn web data i
 - **Make every run actionable:** use structured outputs that are easy to filter, enrich, notify on, or store.
 ## Get started in minutes
 
-1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github01&lk=github01).
+1. **Create a Thordata account** and grab your API key at [thordata](https://www.thordata.com/?ls=github&lk=flora-thordata).
 2. **Install the node** in self-hosted n8n (see [Installation](#installation)).
 3. **Build your first workflow** —add the Thordata node, pick *SERP API* or *Dataset*, and pull live search results or a structured dataset in a couple of clicks.
 
-Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github01&lk=github01)**
+Ready to put web data on autopilot? **[Get your API key →](https://www.thordata.com/?ls=github&lk=flora-thordata)**
 
 ## Explore more Thordata integrations
 
