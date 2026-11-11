@@ -22,8 +22,8 @@ export function createWebScraperRequestAbort(timeoutMs: number, executionSignal?
 export function webScraperFormRequest(url: string, fields: Record<string, string>, timeout: number, sign?: string): IHttpRequestOptions {
   return {
     method: 'POST', url, timeout, json: false, disableFollowRedirect: true,
-    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'n8n', platform: 'n8n', 'api-source': 'sdk', ...(sign ? { sign } : {}) },
-    body: new URLSearchParams(fields).toString(),
+    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', ...(sign ? { sign } : {}) },
+    body: new URLSearchParams({ ...fields, api_source: 'sdk', source_platform: 'n8n' }).toString(),
   };
 }
 
